@@ -205,8 +205,8 @@ body {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 78% 45%, rgba(255, 108, 108, 0.26), transparent 40%),
-    linear-gradient(102deg, #8a0016 0%, #b10b23 54%, #c9192f 100%);
+    radial-gradient(circle at 78% 45%, rgba(185, 12, 34, 0.3), transparent 42%),
+    linear-gradient(180deg, #100204 0%, #3d060d 28%, #6f0916 58%, #9f0f24 82%, #b3122f 100%);
   margin-top: -88px;
   padding: 198px 0 70px;
   overflow: hidden;
@@ -219,6 +219,18 @@ body {
   background:
     radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.12), transparent 34%),
     radial-gradient(circle at 16% 88%, rgba(255, 255, 255, 0.08), transparent 35%);
+  z-index: 0;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=2000&q=80');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.17;
+  filter: saturate(0.9) contrast(0.95);
   z-index: 0;
 }
 
@@ -1286,6 +1298,11 @@ body {
     padding: 10px 12px;
     position: sticky;
     margin-bottom: -22px;
+    align-items: center;
+  }
+
+  .topbar-head {
+    width: 100%;
   }
 
   .menu-toggle {
@@ -1336,7 +1353,8 @@ body {
 
   .hero {
     min-height: 78vh;
-    padding: 90px 0 38px;
+    margin-top: -72px;
+    padding: 154px 0 38px;
   }
 
   .hero-layout {
