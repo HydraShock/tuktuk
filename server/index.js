@@ -1,32 +1,58 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
 dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
-const frontendOrigin = process.env.FRONTEND_ORIGIN || '*';
-const maxBookingsPerSlot = Number(process.env.MAX_BOOKINGS_PER_SLOT || 4);
+const frontendOriginRaw = process.env.FRONTEND_ORIGIN || '*';
+const maxBookingsPerSlot = Number(process.env.MAX_BOOKINGS_PER_SLOT || 1);
 const pendingIntentMinutes = Number(process.env.PENDING_INTENT_MINUTES || 15);
+const defaultPaymentMode = process.env.NODE_ENV === 'production' ? 'paypal' : 'mock';
+const paymentMode = String(process.env.PAYMENT_MODE || defaultPaymentMode).trim().toLowerCase();
+const paymentProvidersByMode = {
+  mock: ['mock', 'paypal'],
+  paypal: ['paypal'],
+};
+const allowedPaymentProviders = paymentProvidersByMode[paymentMode] || paymentProvidersByMode[defaultPaymentMode];
+const fixedAvailabilitySlots = ['10:00', '14:00', '18:00'];
+const fixedAvailabilitySlotCapacity = 1;
 const slotLabels = (process.env.SLOT_LABELS || '09:00 - 11:30,11:45 - 14:20,15:00 - 17:30')
   .split(',')
   .map((slot) => slot.trim())
   .filter(Boolean);
 
-const pool = mysql.createPool({
+const pool = new Pool({
   host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT || 3306),
+  port: Number(process.env.DB_PORT || 5432),
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: Number(process.env.DB_POOL_SIZE || 10),
-  queueLimit: 0,
+  max: Number(process.env.DB_POOL_SIZE || 10),
 });
 
-app.use(cors({ origin: frontendOrigin === '*' ? true : frontendOrigin }));
+const allowedOrigins = frontendOriginRaw
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes('*')) {
+      callback(null, true);
+      return;
+    }
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin non consentita da CORS.'));
+  },
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 function isValidDateKey(input) {
@@ -63,11 +89,97 @@ function buildEmptyAvailability(monthKey) {
   return days;
 }
 
-function normalizeDateKey(rawValue) {
-  if (rawValue instanceof Date) {
-    return rawValue.toISOString().slice(0, 10);
+function parseIsoDateOnly(value) {
+  if (!isValidDateKey(value || '')) {
+    return null;
   }
-  return String(rawValue).slice(0, 10);
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() + 1 !== month
+    || date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
+function formatIsoDateOnlyUtc(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isSupportedPaymentProvider(providerRaw) {
+  const provider = String(providerRaw || '').trim().toLowerCase();
+  return allowedPaymentProviders.includes(provider);
+}
+
+async function getRangeAvailability(fromDate, toDate) {
+  const fromKey = formatIsoDateOnlyUtc(fromDate);
+  const toKey = formatIsoDateOnlyUtc(toDate);
+
+  // One aggregated scan over confirmed appointments and non-expired pending intents.
+  const occupancyResult = await pool.query(
+    `
+      SELECT booking_date::text AS day_key, time_slot, COUNT(*)::int AS occupied
+      FROM (
+        SELECT booking_date, time_slot
+        FROM appointments
+        WHERE booking_date >= $1::date
+          AND booking_date < $2::date
+          AND status = 'confirmed'
+
+        UNION ALL
+
+        SELECT booking_date, time_slot
+        FROM booking_intents
+        WHERE booking_date >= $1::date
+          AND booking_date < $2::date
+          AND status = 'pending'
+          AND expires_at > NOW()
+      ) AS occupied_rows
+      WHERE time_slot = ANY($3::text[])
+      GROUP BY booking_date, time_slot
+    `,
+    [fromKey, toKey, fixedAvailabilitySlots]
+  );
+
+  const availability = {};
+
+  for (
+    let cursor = new Date(fromDate.getTime());
+    cursor < toDate;
+    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)
+  ) {
+    const dayKey = formatIsoDateOnlyUtc(cursor);
+    const slots = {};
+    fixedAvailabilitySlots.forEach((slot) => {
+      slots[slot] = 'available';
+    });
+    availability[dayKey] = {
+      dayStatus: 'available',
+      slots,
+    };
+  }
+
+  occupancyResult.rows.forEach((row) => {
+    const dayKey = row.day_key;
+    if (!availability[dayKey] || !availability[dayKey].slots[row.time_slot]) {
+      return;
+    }
+    const occupied = Number(row.occupied || 0);
+    availability[dayKey].slots[row.time_slot] = occupied >= fixedAvailabilitySlotCapacity ? 'full' : 'available';
+  });
+
+  Object.values(availability).forEach((day) => {
+    const allSlotsFull = fixedAvailabilitySlots.every((slot) => day.slots[slot] === 'full');
+    day.dayStatus = allSlotsFull ? 'full' : 'available';
+  });
+
+  return availability;
 }
 
 app.get('/api/health', async (req, res) => {
@@ -77,6 +189,13 @@ app.get('/api/health', async (req, res) => {
   } catch (error) {
     res.status(500).json({ ok: false, message: 'Database non raggiungibile.' });
   }
+});
+
+app.get('/api/payment-config', (req, res) => {
+  res.json({
+    mode: paymentMode,
+    providers: allowedPaymentProviders,
+  });
 });
 
 app.get('/api/availability', async (req, res) => {
@@ -90,28 +209,28 @@ app.get('/api/availability', async (req, res) => {
   const days = buildEmptyAvailability(month);
 
   try {
-    const [bookedRows] = await pool.query(
+    const bookedResult = await pool.query(
       `
-        SELECT booking_date, time_slot, COUNT(*) AS total
+        SELECT booking_date::text AS day_key, time_slot, COUNT(*) AS total
         FROM appointments
-        WHERE booking_date >= ? AND booking_date < ? AND status = 'confirmed'
+        WHERE booking_date >= $1 AND booking_date < $2 AND status = 'confirmed'
         GROUP BY booking_date, time_slot
       `,
       [from, to]
     );
 
-    const [reservedRows] = await pool.query(
+    const reservedResult = await pool.query(
       `
-        SELECT booking_date, time_slot, COUNT(*) AS total
+        SELECT booking_date::text AS day_key, time_slot, COUNT(*) AS total
         FROM booking_intents
-        WHERE booking_date >= ? AND booking_date < ? AND status = 'pending' AND expires_at > UTC_TIMESTAMP()
+        WHERE booking_date >= $1 AND booking_date < $2 AND status = 'pending' AND expires_at > NOW()
         GROUP BY booking_date, time_slot
       `,
       [from, to]
     );
 
-    bookedRows.forEach((row) => {
-      const dayKey = normalizeDateKey(row.booking_date);
+    bookedResult.rows.forEach((row) => {
+      const dayKey = row.day_key;
       const slot = row.time_slot;
       if (!days[dayKey] || !days[dayKey].slots[slot]) {
         return;
@@ -119,8 +238,8 @@ app.get('/api/availability', async (req, res) => {
       days[dayKey].slots[slot].booked = Number(row.total);
     });
 
-    reservedRows.forEach((row) => {
-      const dayKey = normalizeDateKey(row.booking_date);
+    reservedResult.rows.forEach((row) => {
+      const dayKey = row.day_key;
       const slot = row.time_slot;
       if (!days[dayKey] || !days[dayKey].slots[slot]) {
         return;
@@ -129,17 +248,58 @@ app.get('/api/availability', async (req, res) => {
     });
 
     Object.values(days).forEach((day) => {
-      day.allSlotsFull = slotLabels.every((slot) => {
+      let allSlotsFull = true;
+      slotLabels.forEach((slot) => {
         const slotData = day.slots[slot];
         const available = slotData.booked + slotData.reserved < maxBookingsPerSlot;
         slotData.available = available;
-        return !available;
+        if (available) {
+          allSlotsFull = false;
+        }
       });
+      day.allSlotsFull = allSlotsFull;
     });
 
     res.json({ month, days });
   } catch (error) {
     res.status(500).json({ message: 'Errore durante il calcolo disponibilita.' });
+  }
+});
+
+app.get('/api/availability/range', async (req, res) => {
+  const fromDateRaw = String(req.query.from_date || '');
+  const toDateRaw = String(req.query.to_date || '');
+  const fromDate = parseIsoDateOnly(fromDateRaw);
+  const toDate = parseIsoDateOnly(toDateRaw);
+
+  if (!fromDate || !toDate) {
+    res.status(400).json({
+      message: 'Parametri non validi. Usa from_date e to_date in formato YYYY-MM-DD.',
+    });
+    return;
+  }
+
+  if (fromDate >= toDate) {
+    res.status(400).json({
+      message: 'Intervallo non valido: from_date deve essere precedente a to_date.',
+    });
+    return;
+  }
+
+  const maxRangeDays = 366;
+  const rangeDays = Math.floor((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000));
+  if (rangeDays > maxRangeDays) {
+    res.status(400).json({
+      message: `Intervallo troppo grande. Massimo ${maxRangeDays} giorni.`,
+    });
+    return;
+  }
+
+  try {
+    const availability = await getRangeAvailability(fromDate, toDate);
+    res.json(availability);
+  } catch (error) {
+    res.status(500).json({ message: 'Errore durante il calcolo disponibilita range.' });
   }
 });
 
@@ -168,39 +328,37 @@ app.post('/api/booking-intents', async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query(
+    const countsResult = await pool.query(
       `
         SELECT
-          (SELECT COUNT(*) FROM appointments WHERE booking_date = ? AND time_slot = ? AND status = 'confirmed') AS booked,
-          (SELECT COUNT(*) FROM booking_intents WHERE booking_date = ? AND time_slot = ? AND status = 'pending' AND expires_at > UTC_TIMESTAMP()) AS reserved
+          (SELECT COUNT(*) FROM appointments WHERE booking_date = $1 AND time_slot = $2 AND status = 'confirmed') AS booked,
+          (SELECT COUNT(*) FROM booking_intents WHERE booking_date = $3 AND time_slot = $4 AND status = 'pending' AND expires_at > NOW()) AS reserved
       `,
       [date, timeSlot, date, timeSlot]
     );
 
-    const booked = Number(rows[0].booked || 0);
-    const reserved = Number(rows[0].reserved || 0);
+    const booked = Number(countsResult.rows[0].booked || 0);
+    const reserved = Number(countsResult.rows[0].reserved || 0);
     if (booked + reserved >= maxBookingsPerSlot) {
       res.status(409).json({ message: 'Fascia oraria esaurita.' });
       return;
     }
 
-    const [insertResult] = await pool.query(
+    const insertResult = await pool.query(
       `
         INSERT INTO booking_intents (booking_date, time_slot, guests, tour_id, status, expires_at)
-        VALUES (?, ?, ?, ?, 'pending', DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? MINUTE))
+        VALUES ($1, $2, $3, $4, 'pending', NOW() + ($5::text || ' minutes')::interval)
+        RETURNING id, expires_at
       `,
       [date, timeSlot, guestsNumber, tourId || null, pendingIntentMinutes]
     );
 
-    const intentId = insertResult.insertId;
-    const [intentRows] = await pool.query(
-      'SELECT id, expires_at FROM booking_intents WHERE id = ?',
-      [intentId]
-    );
+    const intentId = insertResult.rows[0].id;
+    const expiresAt = insertResult.rows[0].expires_at;
 
     res.status(201).json({
       intentId,
-      expiresAt: intentRows[0].expires_at,
+      expiresAt,
       status: 'pending',
     });
   } catch (error) {
@@ -208,40 +366,60 @@ app.post('/api/booking-intents', async (req, res) => {
   }
 });
 
+app.post('/api/booking-intents/expire', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+        UPDATE booking_intents
+        SET status = 'expired'
+        WHERE status = 'pending'
+          AND expires_at <= NOW()
+      `
+    );
+    res.json({ expiredIntents: result.rowCount || 0 });
+  } catch (error) {
+    res.status(500).json({ message: 'Errore durante la scadenza intent.' });
+  }
+});
+
 app.post('/api/bookings/confirm', async (req, res) => {
   const { intentId, paymentProvider, paymentReference } = req.body || {};
+  const normalizedPaymentProvider = String(paymentProvider || '').trim().toLowerCase();
   if (!intentId) {
     res.status(400).json({ message: 'Intent ID mancante.' });
     return;
   }
-  if (paymentProvider !== 'paypal') {
-    res.status(400).json({ message: 'Metodo di pagamento non supportato.' });
+  if (!isSupportedPaymentProvider(normalizedPaymentProvider)) {
+    res.status(400).json({ message: 'Metodo di pagamento non supportato per la modalita corrente.' });
     return;
   }
+  const normalizedPaymentReference = paymentReference
+    ? String(paymentReference).trim()
+    : `${normalizedPaymentProvider.toUpperCase()}_${Date.now()}`;
 
-  const connection = await pool.getConnection();
+  const connection = await pool.connect();
   try {
-    await connection.beginTransaction();
+    await connection.query('BEGIN');
 
-    const [intentRows] = await connection.query(
+    const intentResult = await connection.query(
       `
         SELECT id, booking_date, time_slot, guests, tour_id, status, expires_at
         FROM booking_intents
-        WHERE id = ?
+        WHERE id = $1
         FOR UPDATE
       `,
       [intentId]
     );
 
-    if (!intentRows.length) {
-      await connection.rollback();
+    if (!intentResult.rows.length) {
+      await connection.query('ROLLBACK');
       res.status(404).json({ message: 'Prenotazione buffer non trovata.' });
       return;
     }
 
-    const intent = intentRows[0];
+    const intent = intentResult.rows[0];
     if (intent.status !== 'pending') {
-      await connection.rollback();
+      await connection.query('ROLLBACK');
       res.status(409).json({ message: 'Intent gia processato.' });
       return;
     }
@@ -249,30 +427,30 @@ app.post('/api/bookings/confirm', async (req, res) => {
     const expired = new Date(intent.expires_at).getTime() <= Date.now();
     if (expired) {
       await connection.query(
-        'UPDATE booking_intents SET status = ? WHERE id = ?',
+        'UPDATE booking_intents SET status = $1 WHERE id = $2',
         ['expired', intent.id]
       );
-      await connection.commit();
+      await connection.query('COMMIT');
       res.status(409).json({ message: 'Intent scaduto, riprova.' });
       return;
     }
 
-    const [slotRows] = await connection.query(
+    const slotResult = await connection.query(
       `
         SELECT COUNT(*) AS booked
         FROM appointments
-        WHERE booking_date = ? AND time_slot = ? AND status = 'confirmed'
+        WHERE booking_date = $1 AND time_slot = $2 AND status = 'confirmed'
       `,
       [intent.booking_date, intent.time_slot]
     );
 
-    if (Number(slotRows[0].booked || 0) >= maxBookingsPerSlot) {
-      await connection.rollback();
+    if (Number(slotResult.rows[0].booked || 0) >= maxBookingsPerSlot) {
+      await connection.query('ROLLBACK');
       res.status(409).json({ message: 'Fascia oraria non piu disponibile.' });
       return;
     }
 
-    const [insertResult] = await connection.query(
+    const insertResult = await connection.query(
       `
         INSERT INTO appointments (
           booking_date,
@@ -283,31 +461,32 @@ app.post('/api/bookings/confirm', async (req, res) => {
           payment_reference,
           status
         )
-        VALUES (?, ?, ?, ?, ?, ?, 'confirmed')
+        VALUES ($1, $2, $3, $4, $5, $6, 'confirmed')
+        RETURNING id
       `,
       [
         intent.booking_date,
         intent.time_slot,
         intent.guests,
         intent.tour_id,
-        paymentProvider,
-        paymentReference || null,
+        normalizedPaymentProvider,
+        normalizedPaymentReference || null,
       ]
     );
 
     await connection.query(
       `
         UPDATE booking_intents
-        SET status = 'confirmed', payment_provider = ?, payment_reference = ?, confirmed_at = UTC_TIMESTAMP()
-        WHERE id = ?
+        SET status = 'confirmed', payment_provider = $1, payment_reference = $2, confirmed_at = NOW()
+        WHERE id = $3
       `,
-      [paymentProvider, paymentReference || null, intent.id]
+      [normalizedPaymentProvider, normalizedPaymentReference || null, intent.id]
     );
 
-    await connection.commit();
-    res.status(201).json({ bookingId: insertResult.insertId, message: 'Prenotazione confermata.' });
+    await connection.query('COMMIT');
+    res.status(201).json({ bookingId: insertResult.rows[0].id, message: 'Prenotazione confermata.' });
   } catch (error) {
-    await connection.rollback();
+    await connection.query('ROLLBACK');
     res.status(500).json({ message: 'Errore durante la conferma prenotazione.' });
   } finally {
     connection.release();

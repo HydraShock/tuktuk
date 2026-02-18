@@ -18,7 +18,7 @@ const tours = [
     duration: '3 ore',
     capacity: '1-4 persone',
     rating: 4.9,
-    description: 'Esplora i monumenti più iconici di Roma',
+    description: 'Esplora i monumenti piu iconici di Roma',
     stops: ['Colosseo', 'Foro Romano', 'Palatino'],
     image:
       'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80',
@@ -30,7 +30,7 @@ const tours = [
     duration: '2.5 ore',
     capacity: '1-4 persone',
     rating: 4.8,
-    description: 'Vista mozzafiato dei luoghi più belli',
+    description: 'Vista mozzafiato dei luoghi piu belli',
     stops: ['Fontana di Trevi', 'Piazza di Spagna', 'Pantheon'],
     image:
       'https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1200&q=80',
@@ -43,7 +43,7 @@ const tours = [
     capacity: '1-4 persone',
     rating: 5.0,
     popular: true,
-    description: "L'esperienza definitiva della città eterna",
+    description: "L'esperienza definitiva della citta eterna",
     stops: ['Vaticano', 'Colosseo', 'Centro Storico', 'Trastevere'],
     image:
       'https://images.unsplash.com/photo-1529260830199-42c24126f198?auto=format&fit=crop&w=1200&q=80',
@@ -84,6 +84,8 @@ const bookingTourOptions = [
 ];
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000/api';
+const PAYMENT_MODE = (process.env.REACT_APP_PAYMENT_MODE || 'mock').toLowerCase();
+const CHECKOUT_PROVIDER = PAYMENT_MODE === 'paypal' ? 'paypal' : 'mock';
 
 function toDateKey(dateValue) {
   const year = dateValue.getFullYear();
@@ -109,11 +111,11 @@ const galleryImages = [
 function TourShowcaseCard({ tour, onBook }) {
   return (
     <article className={`tour-showcase-card ${tour.popular ? 'popular' : ''}`}>
-      {tour.popular ? <span className="popular-badge">PIÙ POPOLARE</span> : null}
+      {tour.popular ? <span className="popular-badge">{"PI\u00D9 POPOLARE"}</span> : null}
       <div className="tour-image-wrap">
         <img src={tour.image} alt={tour.title} />
         <span className="tour-rating">
-          <span className="rating-star">★</span>
+          <span className="rating-star">{"\u2605"}</span>
           {tour.rating}
         </span>
       </div>
@@ -130,10 +132,10 @@ function TourShowcaseCard({ tour, onBook }) {
 
         <div className="tour-meta">
           <span>
-            <i>◷</i> {tour.duration}
+            <i>{"\u25F7"}</i> {tour.duration}
           </span>
           <span>
-            <i>👥</i> {tour.capacity}
+            <i>{"\u{1F465}"}</i> {tour.capacity}
           </span>
         </div>
 
@@ -142,10 +144,10 @@ function TourShowcaseCard({ tour, onBook }) {
         <div className="tour-footer-row">
           <div>
             <small>A partire da</small>
-            <strong>€{tour.price}</strong>
+            <strong>{"\u20AC"}{tour.price}</strong>
           </div>
           <button type="button" onClick={() => onBook(tour.id)}>
-            Prenota <span>→</span>
+            Prenota <span>{"\u2192"}</span>
           </button>
         </div>
       </div>
@@ -165,6 +167,8 @@ function App() {
   const [stepMotion, setStepMotion] = useState('idle');
   const [availabilityByDate, setAvailabilityByDate] = useState({});
   const [availabilityError, setAvailabilityError] = useState('');
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityRetryTick, setAvailabilityRetryTick] = useState(0);
   const [isPaying, setIsPaying] = useState(false);
   const transitionTimersRef = useRef([]);
 
@@ -252,7 +256,9 @@ function App() {
         value.getFullYear() === todayStart.getFullYear() &&
         value.getMonth() === todayStart.getMonth() &&
         value.getDate() === todayStart.getDate();
-      const blockedByAvailability = dayAvailability ? dayAvailability.allSlotsFull : false;
+      const blockedByAvailability = dayAvailability
+        ? dayAvailability.allSlotsFull
+        : (availabilityLoading || Boolean(availabilityError));
       return {
         key: value.toISOString(),
         value,
@@ -267,26 +273,30 @@ function App() {
 
     const missing = (7 - (cells.length % 7)) % 7;
     return [...cells, ...Array.from({ length: missing }, (_, idx) => ({ key: `tail-${idx}`, empty: true }))];
-  }, [availabilityByDate, calendarMonth, date, todayStart]);
+  }, [availabilityByDate, availabilityError, availabilityLoading, calendarMonth, date, todayStart]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadAvailability = async () => {
       try {
-        setAvailabilityError('');
+        setAvailabilityLoading(true);
         const response = await fetch(`${API_BASE_URL}/availability?month=${monthKey}`);
         if (!response.ok) {
           throw new Error('Impossibile caricare disponibilita');
         }
         const payload = await response.json();
         if (!cancelled) {
+          setAvailabilityError('');
           setAvailabilityByDate(payload.days || {});
         }
       } catch (error) {
         if (!cancelled) {
-          setAvailabilityError(error.message || 'Errore disponibilita');
-          setAvailabilityByDate({});
+          setAvailabilityError('Disponibilita temporaneamente non raggiungibile. Riprovo tra pochi secondi.');
+        }
+      } finally {
+        if (!cancelled) {
+          setAvailabilityLoading(false);
         }
       }
     };
@@ -295,7 +305,19 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [monthKey]);
+  }, [monthKey, availabilityRetryTick]);
+
+  useEffect(() => {
+    if (!availabilityError) {
+      return undefined;
+    }
+    const retryTimer = window.setTimeout(() => {
+      setAvailabilityRetryTick((current) => current + 1);
+    }, 2500);
+    return () => {
+      window.clearTimeout(retryTimer);
+    };
+  }, [availabilityError]);
 
   useEffect(() => {
     const selectedSlotStatus = selectedDayAvailability?.slots?.[timeSlot];
@@ -344,12 +366,20 @@ function App() {
       window.alert('Seleziona una data prima di continuare.');
       return;
     }
+    if (!selectedDayAvailability) {
+      window.alert('Disponibilita non ancora caricata. Attendi un attimo e riprova.');
+      return;
+    }
     transitionToStep(2, 'forward');
   };
 
   const goToTourStep = () => {
+    if (!selectedDayAvailability) {
+      window.alert('Disponibilita non ancora caricata. Attendi un attimo e riprova.');
+      return;
+    }
     const slotAvailability = selectedDayAvailability?.slots?.[timeSlot];
-    if (!timeSlot || (slotAvailability && !slotAvailability.available)) {
+    if (!timeSlot || !slotAvailability || !slotAvailability.available) {
       window.alert('Seleziona un orario disponibile prima di continuare.');
       return;
     }
@@ -372,7 +402,7 @@ function App() {
     transitionToStep(5, 'forward');
   };
 
-  const startPaypalCheckout = () => {
+  const startCheckout = () => {
     if (!bookingReady) {
       window.alert('Completa prima i dati della prenotazione.');
       return;
@@ -404,13 +434,13 @@ function App() {
           throw new Error(intentPayload.message || 'Impossibile creare la prenotazione.');
         }
 
-        const paymentReference = `PAYPAL_DEMO_${Date.now()}`;
+        const paymentReference = `${CHECKOUT_PROVIDER.toUpperCase()}_${Date.now()}`;
         const confirmResponse = await fetch(`${API_BASE_URL}/bookings/confirm`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             intentId: intentPayload.intentId,
-            paymentProvider: 'paypal',
+            paymentProvider: CHECKOUT_PROVIDER,
             paymentReference,
           }),
         });
@@ -445,7 +475,7 @@ function App() {
       <header className={`topbar ${isScrolled ? 'scrolled' : ''}`}>
         <div className="topbar-head">
           <div className="brand">
-            <span className="brand-icon">🛺</span>
+            <span className="brand-icon">{"\u{1F6FA}"}</span>
             <div>
               <strong>Tuk Tuk Roma</strong>
             </div>
@@ -468,7 +498,7 @@ function App() {
             Prenota Ora
           </a>
           <button type="button" className="nav-menu-icon" aria-label="Menu rapido">
-            ≡
+            {"\u2261"}
           </button>
         </nav>
         <button
@@ -522,10 +552,10 @@ function App() {
             </p>
             <div className="hero-actions">
               <a href="#prenota" className="hero-cta">
-                Prenota Ora <span>→</span>
+                Prenota Ora <span>{"\u2192"}</span>
               </a>
               <a href="#tour" className="hero-cta hero-cta-alt">
-                ⦿ Scopri i tour
+                {"\u29BF"} Scopri i tour
               </a>
             </div>
             <div className="hero-stats">
@@ -538,7 +568,7 @@ function App() {
                 <small>Tour Disponibili</small>
               </div>
               <div>
-                <strong>4.9★</strong>
+                <strong>4.9{"\u2605"}</strong>
                 <small>Valutazione Media</small>
               </div>
             </div>
@@ -602,7 +632,7 @@ function App() {
                   className="booking-month-arrow"
                   onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
                 >
-                  ‹
+                  {"\u2039"}
                 </button>
                 <h3>{monthTitle}</h3>
                 <button
@@ -610,7 +640,7 @@ function App() {
                   className="booking-month-arrow"
                   onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
                 >
-                  ›
+                  {"\u203A"}
                 </button>
               </div>
 
@@ -653,7 +683,7 @@ function App() {
           {currentStep === 2 ? (
             <div className="booking-stage-panel">
               <div className="booking-selected-date">
-                <span aria-hidden="true">📅</span>
+                <span aria-hidden="true">{"\u{1F4C5}"}</span>
                 <strong>{selectedDateLabel}</strong>
               </div>
 
@@ -664,7 +694,7 @@ function App() {
                 <div className="booking-time-grid">
                   {availableTimes.map((time) => {
                     const slotAvailability = selectedDayAvailability?.slots?.[time];
-                    const slotUnavailable = slotAvailability ? !slotAvailability.available : false;
+                    const slotUnavailable = !slotAvailability || !slotAvailability.available;
                     return (
                       <button
                         type="button"
@@ -678,6 +708,7 @@ function App() {
                     );
                   })}
                 </div>
+                {availabilityLoading ? <p className="booking-availability-error">Aggiornamento disponibilita in corso...</p> : null}
                 {availabilityError ? <p className="booking-availability-error">{availabilityError}</p> : null}
               </div>
 
@@ -710,11 +741,11 @@ function App() {
                         className={`booking-tour-option ${tourId === tour.id ? 'selected' : ''}`}
                         onClick={() => setTourId(tour.id)}
                       >
-                        {tour.popular ? <span className="booking-tour-popular">PIÙ POPOLARE</span> : null}
+                        {tour.popular ? <span className="booking-tour-popular">{"PI\u00D9 POPOLARE"}</span> : null}
                         <div className="booking-tour-media">
                           <img src={tour.image} alt={tour.title} />
                           <span className="booking-tour-rating">
-                            <span>★</span>
+                            <span>{"\u2605"}</span>
                             {tour.rating}
                           </span>
                         </div>
@@ -728,8 +759,8 @@ function App() {
                             ))}
                           </div>
                           <div className="booking-tour-meta">
-                            <span>◷ {tour.duration}</span>
-                            <span>👥 {tour.capacity}</span>
+                            <span>{"\u25F7"} {tour.duration}</span>
+                            <span>{"\u{1F465}"} {tour.capacity}</span>
                           </div>
                           <strong>EUR {tour.price}</strong>
                         </div>
@@ -766,7 +797,7 @@ function App() {
                 <p>Rivedi i dettagli del tuo tour</p>
 
                 <div className="booking-confirm-row">
-                  <div className="icon">📅</div>
+                  <div className="icon">{"\u{1F4C5}"}</div>
                   <div>
                     <small>Data</small>
                     <strong>{selectedDateLong}</strong>
@@ -774,7 +805,7 @@ function App() {
                 </div>
 
                 <div className="booking-confirm-row">
-                  <div className="icon">◷</div>
+                  <div className="icon">{"\u25F7"}</div>
                   <div>
                     <small>Orario</small>
                     <strong>{timeSlot || '-'}</strong>
@@ -782,12 +813,12 @@ function App() {
                 </div>
 
                 <div className="booking-confirm-row">
-                  <div className="icon">👤</div>
+                  <div className="icon">{"\u{1F464}"}</div>
                   <div>
                     <small>Numero di Ospiti</small>
                     <div className="booking-guests">
                       <button type="button" onClick={() => setPeople(String(Math.max(1, guests - 1)))}>
-                        −
+                        {"\u2212"}
                       </button>
                       <strong>{people}</strong>
                       <button type="button" onClick={() => setPeople(String(Math.min(4, guests + 1)))}>
@@ -799,10 +830,19 @@ function App() {
 
                 {selectedTour ? (
                   <div className="booking-confirm-row">
-                    <div className="icon">🚖</div>
+                    <div className="icon">{"\u{1F695}"}</div>
                     <div>
                       <small>Tour</small>
                       <strong>{selectedTour.title}</strong>
+                    </div>
+                  </div>
+                ) : null}
+                {selectedTour ? (
+                  <div className="booking-confirm-row">
+                    <div className="icon">{"\u20AC"}</div>
+                    <div>
+                      <small>Prezzo Tour</small>
+                      <strong>EUR {selectedTour.price}</strong>
                     </div>
                   </div>
                 ) : null}
@@ -829,8 +869,12 @@ function App() {
                 <p>Seleziona il metodo di pagamento per completare la prenotazione.</p>
 
                 <button type="button" className="booking-paypal-method">
-                  <span className="pp-badge">PayPal</span>
-                  <strong>Paga in sicurezza con PayPal</strong>
+                  <span className="pp-badge">{CHECKOUT_PROVIDER === 'mock' ? 'TEST' : 'PayPal'}</span>
+                  <strong>
+                    {CHECKOUT_PROVIDER === 'mock'
+                      ? 'Pagamento simulato (ambiente test)'
+                      : 'Paga in sicurezza con PayPal'}
+                  </strong>
                   <small>
                     Totale: EUR {selectedTour ? selectedTour.price * Number(people) : 0}
                   </small>
@@ -844,10 +888,10 @@ function App() {
                 <button
                   type="button"
                   className="booking-primary-cta booking-paypal-btn"
-                  onClick={startPaypalCheckout}
+                  onClick={startCheckout}
                   disabled={isPaying}
                 >
-                  {isPaying ? 'Pagamento in corso...' : 'Paga con PayPal'}
+                  {isPaying ? 'Pagamento in corso...' : (CHECKOUT_PROVIDER === 'mock' ? 'Conferma Pagamento Test' : 'Paga con PayPal')}
                 </button>
               </div>
             </div>
@@ -1007,7 +1051,7 @@ function App() {
           </div>
 
           <div className="footer-bottom">
-            <p>© 2026 Tuk Tuk Roma Tours. Tutti i diritti riservati.</p>
+            <p>{"\u00A9"} 2026 Tuk Tuk Roma Tours. Tutti i diritti riservati.</p>
             <div className="footer-links">
               <a href="#home">Privacy Policy</a>
               <a href="#home">Termini e Condizioni</a>
@@ -1021,4 +1065,3 @@ function App() {
 }
 
 export default App;
-
