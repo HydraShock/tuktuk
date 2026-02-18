@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { BackgroundGradientAnimation } from './ui/background-gradient-animation';
+import { BackgroundGradient } from './components/ui/background-gradient.jsx';
 
 const heroRomeImages = [
   'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=900&q=80',
@@ -59,11 +60,26 @@ const bookingTourOptions = [
     id: 'roma-mangia-prega-ama',
     title: 'Roma tour mangia prega ama',
     price: 79,
+    rating: 4.8,
+    duration: '2.5 ore',
+    capacity: '1-4 persone',
+    description: 'Tra vicoli iconici, sapori romani e scorci indimenticabili.',
+    stops: ['Fontana di Trevi', 'Piazza di Spagna', 'Pantheon'],
+    image:
+      'https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'when-in-rome',
     title: 'When in Rome do as the Romans do',
-    price: 79,
+    price: 149,
+    rating: 5.0,
+    duration: '5 ore',
+    capacity: '1-4 persone',
+    popular: true,
+    description: "L'esperienza completa per vivere Roma come un locale.",
+    stops: ['Vaticano', 'Colosseo', 'Centro Storico', 'Trastevere'],
+    image:
+      'https://images.unsplash.com/photo-1529260830199-42c24126f198?auto=format&fit=crop&w=1200&q=80',
   },
 ];
 
@@ -642,9 +658,8 @@ function App() {
               </div>
 
                 <div className="booking-time-card">
-                  <h3>
-                    <span aria-hidden="true">◷</span>
-                    Seleziona la Fascia Oraria
+                  <h3 className="booking-strong-title">
+                    Scegli la <span>Fascia Oraria</span>
                   </h3>
                 <div className="booking-time-grid">
                   {availableTimes.map((time) => {
@@ -680,20 +695,46 @@ function App() {
           {currentStep === 3 ? (
             <div className="booking-stage-panel">
               <div className="booking-tour-card">
-                <h3>
+                <h3 className="booking-strong-title">
                   Scegli il <span>Tour</span>
                 </h3>
                 <div className="booking-tour-grid">
                   {bookingTourOptions.map((tour) => (
-                    <button
-                      type="button"
+                    <BackgroundGradient
                       key={tour.id}
-                      className={`booking-tour-option ${tourId === tour.id ? 'selected' : ''}`}
-                      onClick={() => setTourId(tour.id)}
+                      containerClassName={`booking-tour-gradient ${tourId === tour.id ? 'selected' : ''}`}
+                      className="booking-tour-gradient-content"
                     >
-                      <span className="booking-tour-name">{tour.title}</span>
-                      <strong>EUR {tour.price}</strong>
-                    </button>
+                      <button
+                        type="button"
+                        className={`booking-tour-option ${tourId === tour.id ? 'selected' : ''}`}
+                        onClick={() => setTourId(tour.id)}
+                      >
+                        {tour.popular ? <span className="booking-tour-popular">PIÙ POPOLARE</span> : null}
+                        <div className="booking-tour-media">
+                          <img src={tour.image} alt={tour.title} />
+                          <span className="booking-tour-rating">
+                            <span>★</span>
+                            {tour.rating}
+                          </span>
+                        </div>
+
+                        <div className="booking-tour-content">
+                          <span className="booking-tour-name">{tour.title}</span>
+                          <p>{tour.description}</p>
+                          <div className="booking-tour-tags">
+                            {tour.stops.map((stop) => (
+                              <span key={stop}>{stop}</span>
+                            ))}
+                          </div>
+                          <div className="booking-tour-meta">
+                            <span>◷ {tour.duration}</span>
+                            <span>👥 {tour.capacity}</span>
+                          </div>
+                          <strong>EUR {tour.price}</strong>
+                        </div>
+                      </button>
+                    </BackgroundGradient>
                   ))}
                 </div>
               </div>
@@ -719,7 +760,9 @@ function App() {
                     </svg>
                   </span>
                 </div>
-                <h3>Conferma la Tua Prenotazione</h3>
+                <h3 className="booking-strong-title">
+                  Scegli il numero degli <span>Ospiti</span> e <span>Conferma</span> la tua Prenotazione
+                </h3>
                 <p>Rivedi i dettagli del tuo tour</p>
 
                 <div className="booking-confirm-row">
@@ -854,9 +897,7 @@ function App() {
                         <path d="M4 8v7l4 2" stroke="currentColor" strokeWidth="2" />
                       </svg>
                     </span>
-                    Prenota il Tuo Tour
-                    <span aria-hidden="true">-&gt;</span>
-                  </a>
+                    Prenota il Tuo Tour                  </a>
                   <a href="tel:+390612345678" className="ready-btn ready-btn-ghost">
                     <span className="ready-btn-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none">
@@ -980,3 +1021,4 @@ function App() {
 }
 
 export default App;
+

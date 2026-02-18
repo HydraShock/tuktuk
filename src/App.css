@@ -2033,20 +2033,27 @@ body {
   padding: 26px 26px 28px;
 }
 
-.booking-time-card h3 {
-  margin: 0 0 18px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: #151a22;
+.booking-strong-title {
+  margin: 0;
   font-family: 'Poppins', sans-serif;
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: clamp(2rem, 3.5vw, 4rem);
+  line-height: 1.02;
+  color: #080d17;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
-.booking-time-card h3 span {
-  color: #f29000;
-  font-size: 1.12rem;
+.booking-strong-title span {
+  background: linear-gradient(90deg, #f68c00 0%, #df2900 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.booking-time-card .booking-strong-title {
+  margin: 0 0 18px;
+  font-size: clamp(1.45rem, 2.2vw, 2.1rem);
+  line-height: 1.06;
 }
 
 .booking-time-grid {
@@ -2153,48 +2160,155 @@ body {
 
 .booking-tour-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
   margin-top: 18px;
 }
 
+.booking-tour-gradient {
+  border-radius: 24px;
+  transition: transform 0.16s ease;
+}
+
+.booking-tour-gradient:hover {
+  transform: translateY(-3px);
+}
+
+.booking-tour-gradient.selected .bg-gradient-layer-blur {
+  opacity: 0.84;
+}
+
+.booking-tour-gradient-content {
+  height: 100%;
+  border-radius: 21px;
+  background: #f4f4f5;
+}
+
 .booking-tour-option {
-  min-height: 104px;
+  width: 100%;
+  height: 100%;
   border: none;
-  border-radius: 18px;
-  background: #f8f8f8;
-  box-shadow: 0 10px 18px rgba(17, 24, 39, 0.09);
-  padding: 14px;
+  border-radius: 21px;
+  background: transparent;
+  padding: 0;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  overflow: hidden;
+  color: #111722;
 }
 
-.booking-tour-option:hover {
-  transform: translateY(-2px);
-  background: #fff3e4;
-  box-shadow: 0 12px 20px rgba(33, 40, 51, 0.14);
+.booking-tour-option:focus-visible {
+  outline: 2px solid #f68c00;
+  outline-offset: 2px;
 }
 
-.booking-tour-option.selected {
-  background: linear-gradient(160deg, #ff8f00 0%, #e63500 100%);
+.booking-tour-option.selected .booking-tour-name,
+.booking-tour-option.selected strong {
+  color: #f04a00;
+}
+
+.booking-tour-media {
+  position: relative;
+  height: 152px;
+  background: #e5e7eb;
+}
+
+.booking-tour-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.booking-tour-rating {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #111722;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.16);
+}
+
+.booking-tour-rating span {
+  color: #f68c00;
+}
+
+.booking-tour-popular {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f68c00 0%, #df2900 100%);
   color: #fff;
-  box-shadow: 0 14px 28px rgba(232, 91, 14, 0.32);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.booking-tour-content {
+  padding: 14px;
+}
+
+.booking-tour-content p {
+  margin: 6px 0 10px;
+  color: #3f4d63;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.booking-tour-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.booking-tour-tags span {
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #ffe9cc;
+  color: #cb5e00;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.booking-tour-meta {
+  margin-top: 11px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: #4f5d73;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
 }
 
 .booking-tour-name {
   display: block;
   font-family: 'Poppins', sans-serif;
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.25;
+  font-size: 1.42rem;
+  font-weight: 800;
+  line-height: 1.18;
 }
 
 .booking-tour-option strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 10px;
   font-family: 'Poppins', sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.32rem;
+  color: #dd2d00;
 }
 
 .booking-ghost-btn {
@@ -2238,10 +2352,10 @@ body {
   height: 22px;
 }
 
-.booking-confirm-card h3 {
+.booking-confirm-card .booking-strong-title {
   margin: 0;
-  font-family: 'Poppins', sans-serif;
-  font-size: 2.6rem;
+  font-size: clamp(2rem, 3.4vw, 2.9rem);
+  line-height: 1.08;
   color: #111722;
 }
 
@@ -2551,7 +2665,7 @@ body {
     border-radius: 18px;
   }
 
-  .booking-time-card h3 {
+  .booking-time-card .booking-strong-title {
     font-size: 1.2rem;
     margin-bottom: 12px;
   }
@@ -2575,10 +2689,13 @@ body {
 
   .booking-selected-date strong {
     font-size: 1rem;
+    line-height: 1.2;
+    text-wrap: balance;
   }
 
   .booking-nav-row {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .booking-primary-cta {
@@ -2601,13 +2718,36 @@ body {
 
   .booking-tour-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 12px;
   }
 
+  .booking-tour-gradient {
+    border-radius: 18px;
+  }
+
+  .booking-tour-gradient-content,
   .booking-tour-option {
-    min-height: 82px;
-    border-radius: 14px;
+    border-radius: 15px;
+  }
+
+  .booking-tour-media {
+    height: 136px;
+  }
+
+  .booking-tour-content {
     padding: 12px;
+  }
+
+  .booking-tour-name {
+    font-size: 1.24rem;
+  }
+
+  .booking-tour-content p {
+    font-size: 0.9rem;
+  }
+
+  .booking-tour-option strong {
+    font-size: 1.2rem;
   }
 
   .booking-payment-card {
@@ -2634,8 +2774,14 @@ body {
     font-size: 1.6rem;
   }
 
-  .booking-confirm-card h3 {
-    font-size: 1.9rem;
+  .booking-confirm-card .booking-strong-title {
+    font-size: 1.45rem;
+    line-height: 1.14;
+  }
+
+  .booking-confirm-card > p {
+    font-size: 0.9rem;
+    margin: 7px 0 14px;
   }
 
   .booking-confirm-row {
@@ -2740,6 +2886,11 @@ body {
     font-size: 0.95rem;
   }
 
+  .booking-selected-date strong {
+    font-size: 0.9rem;
+    line-height: 1.2;
+  }
+
   .booking-primary-cta,
   .booking-ghost-btn {
     min-height: 46px;
@@ -2747,8 +2898,9 @@ body {
     font-size: 0.95rem;
   }
 
-  .booking-confirm-card h3 {
-    font-size: 1.45rem;
+  .booking-confirm-card .booking-strong-title {
+    font-size: 1.22rem;
+    line-height: 1.14;
   }
 
   .booking-payment-card h3 {
@@ -2774,7 +2926,7 @@ body {
   }
 
   .booking-confirm-card > p {
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     margin: 6px 0 14px;
   }
 
@@ -2788,7 +2940,7 @@ body {
 @media (max-width: 420px) {
   .booking {
     width: calc(100% - 12px);
-    margin-top: 38px;
+    margin: 30px auto 44px;
   }
 
   .booking h2 {
@@ -2797,14 +2949,44 @@ body {
 
   .booking > p {
     max-width: 96%;
-    font-size: 0.83rem;
+    font-size: 0.8rem;
+  }
+
+  .booking-steps {
+    margin: 16px auto 14px;
+  }
+
+  .booking-step-dot {
+    width: 26px;
+    height: 26px;
+    font-size: 0.78rem;
+  }
+
+  .booking-step-line {
+    width: 10px;
+    margin: 0 3px;
+  }
+
+  .booking-month-row {
+    grid-template-columns: 28px 1fr 28px;
+  }
+
+  .booking-month-arrow {
+    width: 28px;
+    height: 28px;
+    font-size: 1.3rem;
+  }
+
+  .booking-month-row h3 {
+    font-size: 0.92rem;
   }
 
   .booking-calendar-card,
   .booking-time-card,
-  .booking-confirm-card {
-    padding-left: 8px;
-    padding-right: 8px;
+  .booking-confirm-card,
+  .booking-tour-card,
+  .booking-payment-card {
+    padding: 12px 10px 14px;
     border-radius: 14px;
   }
 
@@ -2818,12 +3000,12 @@ body {
 
   .booking-day,
   .booking-day-empty {
-    min-height: 40px;
+    min-height: 36px;
   }
 
   .booking-day {
-    font-size: 0.88rem;
-    border-radius: 8px;
+    font-size: 0.78rem;
+    border-radius: 7px;
   }
 
   .booking-selected-date {
@@ -2833,21 +3015,74 @@ body {
   }
 
   .booking-selected-date strong {
-    font-size: 0.88rem;
+    font-size: 0.8rem;
   }
 
-  .booking-time-card h3 {
+  .booking-time-card .booking-strong-title {
     font-size: 1.04rem;
   }
 
   .booking-time-slot {
     min-height: 48px;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+    border-radius: 11px;
+  }
+
+  .booking-tour-media {
+    height: 114px;
+  }
+
+  .booking-tour-content {
+    padding: 10px;
+  }
+
+  .booking-tour-name {
+    font-size: 1.06rem;
+  }
+
+  .booking-tour-content p {
+    font-size: 0.82rem;
+    margin-top: 5px;
+    margin-bottom: 8px;
+  }
+
+  .booking-tour-tags span {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+
+  .booking-tour-meta {
+    gap: 10px;
+    font-size: 0.82rem;
+    margin-top: 9px;
+  }
+
+  .booking-tour-option strong {
+    font-size: 1.04rem;
+  }
+
+  .booking-tour-popular {
+    top: 8px;
+    font-size: 0.62rem;
+    padding: 5px 12px;
+  }
+
+  .booking-tour-rating {
+    top: 8px;
+    right: 8px;
+    font-size: 0.8rem;
+    padding: 5px 9px;
   }
 
   .booking-confirm-icon {
     width: 52px;
     height: 52px;
+  }
+
+  .booking-payment-icon {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 10px;
   }
 
   .booking-confirm-icon-core {
@@ -2879,6 +3114,52 @@ body {
   }
 
   .booking-confirm-row strong {
+    font-size: 0.86rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .booking-guests {
+    gap: 8px;
+  }
+
+  .booking-guests button {
+    width: 26px;
+    height: 26px;
+    font-size: 1rem;
+  }
+
+  .booking-paypal-method {
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .pp-badge {
+    min-width: 66px;
+    min-height: 26px;
+    font-size: 0.78rem;
+  }
+
+  .booking-paypal-method strong {
+    margin-top: 8px;
     font-size: 0.9rem;
+  }
+
+  .booking-paypal-method small {
+    margin-top: 5px;
+    font-size: 0.76rem;
+  }
+
+  .booking-confirm-card .booking-strong-title,
+  .booking-payment-card h3 {
+    font-size: 1.08rem;
+  }
+
+  .booking-primary-cta,
+  .booking-ghost-btn {
+    min-height: 42px;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    padding: 0 12px;
   }
 }

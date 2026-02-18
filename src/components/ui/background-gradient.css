@@ -1,0 +1,33 @@
+.bg-gradient-container {
+  position: relative;
+  border-radius: 26px;
+  padding: 3px;
+}
+
+.bg-gradient-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(255, 205, 88, 0.98), transparent 44%),
+    radial-gradient(circle at 88% 12%, rgba(255, 128, 36, 0.9), transparent 40%),
+    radial-gradient(circle at 88% 88%, rgba(236, 37, 18, 0.88), transparent 40%),
+    radial-gradient(circle at 20% 82%, rgba(255, 155, 46, 0.84), transparent 42%),
+    linear-gradient(120deg, #ffd676 0%, #ff9200 48%, #db280a 100%);
+}
+
+.bg-gradient-layer-blur {
+  filter: blur(16px);
+  opacity: 0.6;
+  transform: scale(1.03);
+}
+
+.bg-gradient-layer-core {
+  opacity: 0.95;
+}
+
+.bg-gradient-content {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(26px - 3px);
+}
