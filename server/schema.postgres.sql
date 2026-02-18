@@ -11,6 +11,12 @@ CREATE TABLE IF NOT EXISTS booking_intents (
   time_slot VARCHAR(40) NOT NULL,
   guests SMALLINT NOT NULL CHECK (guests BETWEEN 1 AND 8),
   tour_id VARCHAR(40),
+  unit_price_cents INTEGER,
+  total_price_cents INTEGER,
+  customer_first_name VARCHAR(80),
+  customer_last_name VARCHAR(80),
+  customer_phone VARCHAR(40),
+  customer_email VARCHAR(160),
   status VARCHAR(16) NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'confirmed', 'expired', 'cancelled')),
   payment_provider VARCHAR(32),
@@ -27,6 +33,12 @@ CREATE TABLE IF NOT EXISTS appointments (
   time_slot VARCHAR(40) NOT NULL,
   guests SMALLINT NOT NULL CHECK (guests BETWEEN 1 AND 8),
   tour_id VARCHAR(40),
+  unit_price_cents INTEGER,
+  total_price_cents INTEGER,
+  customer_first_name VARCHAR(80),
+  customer_last_name VARCHAR(80),
+  customer_phone VARCHAR(40),
+  customer_email VARCHAR(160),
   payment_provider VARCHAR(32) NOT NULL,
   payment_reference VARCHAR(128),
   status VARCHAR(16) NOT NULL DEFAULT 'confirmed'
@@ -34,6 +46,23 @@ CREATE TABLE IF NOT EXISTS appointments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Backward-compatible migration for existing tables
+ALTER TABLE booking_intents
+  ADD COLUMN IF NOT EXISTS unit_price_cents INTEGER,
+  ADD COLUMN IF NOT EXISTS total_price_cents INTEGER,
+  ADD COLUMN IF NOT EXISTS customer_first_name VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS customer_last_name VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(40),
+  ADD COLUMN IF NOT EXISTS customer_email VARCHAR(160);
+
+ALTER TABLE appointments
+  ADD COLUMN IF NOT EXISTS unit_price_cents INTEGER,
+  ADD COLUMN IF NOT EXISTS total_price_cents INTEGER,
+  ADD COLUMN IF NOT EXISTS customer_first_name VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS customer_last_name VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(40),
+  ADD COLUMN IF NOT EXISTS customer_email VARCHAR(160);
 
 CREATE INDEX IF NOT EXISTS idx_intents_slot
   ON booking_intents (booking_date, time_slot, status);

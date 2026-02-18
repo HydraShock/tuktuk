@@ -21,6 +21,7 @@
     "react-calendar": "^6.0.0",
     "react-dom": "^19.2.4",
     "react-icons": "^5.5.0",
+    "react-router-dom": "^7.13.0",
     "react-scripts": "5.0.1",
     "react-select": "^5.10.2",
     "shadcn": "^3.8.5",
@@ -32,6 +33,8 @@
   "scripts": {
     "start": "react-scripts start",
     "server": "node server/index.js",
+    "admin:generate-credentials": "node server/scripts/generate-admin-credentials.js",
+    "test:overflow-revenue": "node server/scripts/test-overflow-revenue.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

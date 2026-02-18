@@ -99,6 +99,19 @@ function toMonthKey(dateValue) {
   const month = String(dateValue.getMonth() + 1).padStart(2, '0');
   return `${year}-${month}`;
 }
+
+function sanitizeCustomerText(value, maxLength) {
+  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, maxLength);
+}
+
+function isValidCustomerEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidCustomerPhone(value) {
+  return /^[0-9+\s().-]{6,25}$/.test(value);
+}
+
 const galleryImages = [
   'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1529154036614-a60975f5c760?auto=format&fit=crop&w=1200&q=80',
@@ -162,6 +175,11 @@ function App() {
   const [timeSlot, setTimeSlot] = useState('');
   const [tourId, setTourId] = useState('');
   const [people, setPeople] = useState('2');
+  const [customerFirstName, setCustomerFirstName] = useState('');
+  const [customerLastName, setCustomerLastName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerFormError, setCustomerFormError] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(date.getFullYear(), date.getMonth(), 1));
   const [stepMotion, setStepMotion] = useState('idle');
@@ -204,7 +222,25 @@ function App() {
   }, []);
 
   const selectedDateKey = useMemo(() => toDateKey(date), [date]);
-  const bookingReady = Boolean(date && timeSlot && tourId);
+  const customerData = useMemo(
+    () => ({
+      firstName: sanitizeCustomerText(customerFirstName, 80),
+      lastName: sanitizeCustomerText(customerLastName, 80),
+      phone: sanitizeCustomerText(customerPhone, 40),
+      email: sanitizeCustomerText(customerEmail, 160).toLowerCase(),
+    }),
+    [customerEmail, customerFirstName, customerLastName, customerPhone]
+  );
+  const customerDataReady = useMemo(
+    () => (
+      customerData.firstName.length >= 2
+      && customerData.lastName.length >= 2
+      && isValidCustomerPhone(customerData.phone)
+      && isValidCustomerEmail(customerData.email)
+    ),
+    [customerData]
+  );
+  const bookingReady = Boolean(date && timeSlot && tourId && customerDataReady);
   const guests = Number(people);
   const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
   const selectedDateLabel = useMemo(
@@ -332,12 +368,22 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!customerFormError) {
+      return;
+    }
+    if (customerDataReady && Number.isInteger(guests) && guests >= 1 && guests <= 8) {
+      setCustomerFormError('');
+    }
+  }, [customerDataReady, customerFormError, guests]);
+
   const bookingPayload = {
     tourId,
     tourName: selectedTour?.title || '',
     date: selectedDateKey,
     time: timeSlot,
     people,
+    customer: customerData,
     amount: selectedTour?.price || 0,
     currency: 'EUR',
   };
@@ -359,6 +405,31 @@ function App() {
       transitionTimersRef.current.push(inTimer);
     }, 170);
     transitionTimersRef.current.push(outTimer);
+  };
+
+  const validateCustomerStep = () => {
+    if (customerData.firstName.length < 2) {
+      setCustomerFormError('Inserisci un nome valido (almeno 2 caratteri).');
+      return false;
+    }
+    if (customerData.lastName.length < 2) {
+      setCustomerFormError('Inserisci un cognome valido (almeno 2 caratteri).');
+      return false;
+    }
+    if (!isValidCustomerPhone(customerData.phone)) {
+      setCustomerFormError('Inserisci un numero di cellulare valido.');
+      return false;
+    }
+    if (!isValidCustomerEmail(customerData.email)) {
+      setCustomerFormError('Inserisci un indirizzo email valido.');
+      return false;
+    }
+    if (!Number.isInteger(guests) || guests < 1 || guests > 8) {
+      setCustomerFormError('Numero ospiti non valido.');
+      return false;
+    }
+    setCustomerFormError('');
+    return true;
   };
 
   const goToTimeStep = () => {
@@ -386,7 +457,7 @@ function App() {
     transitionToStep(3, 'forward');
   };
 
-  const goToConfirmStep = () => {
+  const goToCustomerStep = () => {
     if (!tourId) {
       window.alert('Seleziona un tour prima di continuare.');
       return;
@@ -394,15 +465,27 @@ function App() {
     transitionToStep(4, 'forward');
   };
 
-  const goToPaymentStep = () => {
-    if (!bookingReady) {
-      window.alert('Completa data, orario e tour prima di andare al pagamento.');
+  const goToConfirmStep = () => {
+    if (!validateCustomerStep()) {
+      window.alert('Completa correttamente i dati cliente prima di continuare.');
       return;
     }
     transitionToStep(5, 'forward');
   };
 
+  const goToPaymentStep = () => {
+    if (!bookingReady) {
+      window.alert('Completa data, orario, tour e dati cliente prima di andare al pagamento.');
+      return;
+    }
+    transitionToStep(6, 'forward');
+  };
+
   const startCheckout = () => {
+    if (!validateCustomerStep()) {
+      window.alert('Completa correttamente i dati cliente prima del pagamento.');
+      return;
+    }
     if (!bookingReady) {
       window.alert('Completa prima i dati della prenotazione.');
       return;
@@ -426,6 +509,10 @@ function App() {
             timeSlot: bookingPayload.time,
             guests: Number(bookingPayload.people),
             tourId: bookingPayload.tourId || null,
+            firstName: bookingPayload.customer.firstName,
+            lastName: bookingPayload.customer.lastName,
+            phone: bookingPayload.customer.phone,
+            email: bookingPayload.customer.email,
           }),
         });
 
@@ -615,7 +702,7 @@ function App() {
         <p>Scegli la data e l'orario perfetto per la tua esperienza indimenticabile a Roma</p>
 
         <ol className="booking-steps">
-          {[1, 2, 3, 4, 5].map((step, index) => (
+          {[1, 2, 3, 4, 5, 6].map((step, index) => (
             <React.Fragment key={step}>
               {index > 0 ? <li className={`booking-step-line ${currentStep >= step ? 'active' : ''}`} /> : null}
               <li className={`booking-step-dot ${currentStep >= step ? 'active' : ''}`}>{step}</li>
@@ -774,7 +861,7 @@ function App() {
                 <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(2, 'backward')}>
                   Indietro
                 </button>
-                <button type="button" className="booking-primary-cta" onClick={goToConfirmStep}>
+                <button type="button" className="booking-primary-cta" onClick={goToCustomerStep}>
                   Avanti
                 </button>
               </div>
@@ -782,6 +869,99 @@ function App() {
           ) : null}
 
           {currentStep === 4 ? (
+            <div className="booking-stage-panel">
+              <div className="booking-customer-card">
+                <div className="booking-confirm-icon" aria-hidden="true">
+                  <span className="booking-confirm-icon-core">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <rect x="4.2" y="4.2" width="15.6" height="15.6" rx="3.4" stroke="currentColor" strokeWidth="2.2" />
+                      <path d="M8.2 15.6V14.8C8.2 13.4 9.3 12.3 10.7 12.3H13.3C14.7 12.3 15.8 13.4 15.8 14.8V15.6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+                      <circle cx="12" cy="9" r="2.1" stroke="currentColor" strokeWidth="2.1" />
+                    </svg>
+                  </span>
+                </div>
+                <h3 className="booking-strong-title">
+                  INSERISCI I TUOI <span>DATI</span>
+                </h3>
+                <p>Aggiungi i dati del cliente e il numero ospiti prima della conferma.</p>
+
+                <div className="booking-customer-grid">
+                  <label className="booking-customer-field">
+                    <span>Nome</span>
+                    <input
+                      type="text"
+                      value={customerFirstName}
+                      onChange={(event) => setCustomerFirstName(event.target.value)}
+                      placeholder="Mario"
+                      autoComplete="given-name"
+                    />
+                  </label>
+                  <label className="booking-customer-field">
+                    <span>Cognome</span>
+                    <input
+                      type="text"
+                      value={customerLastName}
+                      onChange={(event) => setCustomerLastName(event.target.value)}
+                      placeholder="Rossi"
+                      autoComplete="family-name"
+                    />
+                  </label>
+                  <label className="booking-customer-field">
+                    <span>Cellulare</span>
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(event) => setCustomerPhone(event.target.value)}
+                      placeholder="+39 333 123 4567"
+                      autoComplete="tel"
+                    />
+                  </label>
+                  <label className="booking-customer-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={customerEmail}
+                      onChange={(event) => setCustomerEmail(event.target.value)}
+                      placeholder="cliente@email.com"
+                      autoComplete="email"
+                    />
+                  </label>
+                </div>
+
+                <div className="booking-confirm-row booking-guests-row">
+                  <div className="icon">{"\u{1F465}"}</div>
+                  <div>
+                    <small>
+                      Numero Ospiti <span className="booking-inline-gradient">(18+)</span>
+                    </small>
+                    <div className="booking-guests">
+                      <button type="button" onClick={() => setPeople(String(Math.max(1, guests - 1)))}>
+                        {"\u2212"}
+                      </button>
+                      <strong>{people}</strong>
+                      <button type="button" onClick={() => setPeople(String(Math.min(8, guests + 1)))}>
+                        +
+                      </button>
+                    </div>
+                    <small className="booking-guests-note">I bambini non pagano.</small>
+                  </div>
+                </div>
+
+                {customerFormError ? <p className="booking-customer-error">{customerFormError}</p> : null}
+              </div>
+
+              <div className="booking-nav-row">
+                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(3, 'backward')}>
+                  Indietro
+                </button>
+                <button type="button" className="booking-primary-cta" onClick={goToConfirmStep}>
+                  Avanti
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {currentStep === 5 ? (
             <div className="booking-stage-panel">
               <div className="booking-confirm-card">
                 <div className="booking-confirm-icon" aria-hidden="true">
@@ -792,9 +972,9 @@ function App() {
                   </span>
                 </div>
                 <h3 className="booking-strong-title">
-                  Scegli il numero degli <span>Ospiti</span> e <span>Conferma</span> la tua Prenotazione
+                  Conferma la tua <span>Prenotazione</span>
                 </h3>
-                <p>Rivedi i dettagli del tuo tour</p>
+                <p>Rivedi i dettagli prima del pagamento.</p>
 
                 <div className="booking-confirm-row">
                   <div className="icon">{"\u{1F4C5}"}</div>
@@ -815,16 +995,17 @@ function App() {
                 <div className="booking-confirm-row">
                   <div className="icon">{"\u{1F464}"}</div>
                   <div>
-                    <small>Numero di Ospiti</small>
-                    <div className="booking-guests">
-                      <button type="button" onClick={() => setPeople(String(Math.max(1, guests - 1)))}>
-                        {"\u2212"}
-                      </button>
-                      <strong>{people}</strong>
-                      <button type="button" onClick={() => setPeople(String(Math.min(4, guests + 1)))}>
-                        +
-                      </button>
-                    </div>
+                    <small>Cliente</small>
+                    <strong>{`${customerData.firstName} ${customerData.lastName}`}</strong>
+                  </div>
+                </div>
+
+                <div className="booking-confirm-row">
+                  <div className="icon">{"\u260E"}</div>
+                  <div>
+                    <small>Contatti</small>
+                    <strong>{customerData.phone}</strong>
+                    <small>{customerData.email}</small>
                   </div>
                 </div>
 
@@ -837,19 +1018,20 @@ function App() {
                     </div>
                   </div>
                 ) : null}
+
                 {selectedTour ? (
                   <div className="booking-confirm-row">
                     <div className="icon">{"\u20AC"}</div>
                     <div>
-                      <small>Prezzo Tour</small>
-                      <strong>EUR {selectedTour.price}</strong>
+                      <small>Prezzo Totale ({people} ospiti)</small>
+                      <strong>EUR {selectedTour.price * Number(people)}</strong>
                     </div>
                   </div>
                 ) : null}
               </div>
 
               <div className="booking-nav-row">
-                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(3, 'backward')}>
+                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(4, 'backward')}>
                   Indietro
                 </button>
                 <button type="button" className="booking-primary-cta" onClick={goToPaymentStep}>
@@ -859,7 +1041,7 @@ function App() {
             </div>
           ) : null}
 
-          {currentStep === 5 ? (
+          {currentStep === 6 ? (
             <div className="booking-stage-panel">
               <div className="booking-payment-card">
                 <div className="booking-payment-icon" aria-hidden="true">
@@ -882,7 +1064,7 @@ function App() {
               </div>
 
               <div className="booking-nav-row">
-                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(4, 'backward')}>
+                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(5, 'backward')}>
                   Indietro
                 </button>
                 <button
@@ -980,6 +1162,103 @@ function App() {
               </div>
             </div>
           </BackgroundGradientAnimation>
+        </section>
+
+        <section className="footer-map-section" aria-labelledby="footer-map-title">
+          <aside className="footer-map-float footer-map-float-rating" aria-label="Tour rating">
+            <span className="footer-map-float-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3.8l2.1 4.3 4.8.7-3.5 3.4.8 4.8L12 15.6 7.7 17l.8-4.8L5 8.8l4.8-.7L12 3.8z" fill="currentColor" />
+              </svg>
+            </span>
+            <div>
+              <strong>4.9/5</strong>
+              <small>2.4k+ Reviews</small>
+            </div>
+          </aside>
+
+          <aside className="footer-map-float footer-map-float-tourists" aria-label="Happy tourists">
+            <span className="footer-map-float-icon green">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M7 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm10 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM4 19c0-2.2 1.8-4 4-4h2c2.2 0 4 1.8 4 4M12 19c0-2.2 1.8-4 4-4h0.8c1.8 0 3.2 1.4 3.2 3.2V19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </span>
+            <div>
+              <strong>15k+</strong>
+              <small>Happy Tourists</small>
+            </div>
+          </aside>
+
+        
+
+          <div className="footer-map-head">
+            <h3 id="footer-map-title">
+              Dove <span>Siamo</span>?
+            </h3>
+            <p>Venite a trovarci! Siamo aperti dalle 7:00 alle 23:00</p>
+          </div>
+
+          <div className="footer-map-shell">
+            <iframe
+              title="Mappa sede Tuk Tuk Roma - Via Cavour 134"
+              src="https://maps.google.com/maps?q=Via%20Cavour%20134%2C%20Roma&t=&z=16&ie=UTF8&iwloc=&output=embed"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+
+            <div className="footer-map-tour-card" aria-label="Tour details">
+              <div className="footer-map-tour-card-head">
+                <span className="footer-map-tour-icon">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 16V9.5c0-1.4 1.1-2.5 2.5-2.5h9c1.4 0 2.5 1.1 2.5 2.5V16" stroke="currentColor" strokeWidth="1.9" />
+                    <circle cx="8.5" cy="16.5" r="1.5" fill="currentColor" />
+                    <circle cx="15.5" cy="16.5" r="1.5" fill="currentColor" />
+                    <path d="M3 12h18" stroke="currentColor" strokeWidth="1.6" />
+                  </svg>
+                </span>
+                <div>
+                  <strong>Tour Details</strong>
+                  <small>Premium Experience</small>
+                </div>
+              </div>
+
+              <div className="footer-map-tour-list">
+                <p><span>Duration</span><strong>2 hours</strong></p>
+                <p><span>Stops</span><strong>4 Landmarks</strong></p>
+                <p><span>Price</span><strong>€120 <em>/ tour</em></strong></p>
+              </div>
+            </div>
+
+            
+            <a className="footer-map-cta" href="#prenota">
+              <span>Book This Tour</span>
+              <span className="footer-map-cta-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 16V9.5c0-1.4 1.1-2.5 2.5-2.5h9c1.4 0 2.5 1.1 2.5 2.5V16" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="8.5" cy="16.5" r="1.5" fill="currentColor" />
+                  <circle cx="15.5" cy="16.5" r="1.5" fill="currentColor" />
+                </svg>
+              </span>
+            </a>
+
+            <div className="footer-map-dots" aria-hidden="true">
+              <span className="active" />
+              <span />
+              <span />
+            </div>
+          </div>
+
+          <div className="footer-map-benefits" aria-label="Tour benefits">
+            <span>
+              <i>✓</i> Cancellazione Gratuita
+            </span>
+            <span>
+              <i>◎</i> Esperienza Personalizzata
+            </span>
+            <span>
+              <i>↗</i> Miglior Prezzo Garantito
+            </span>
+          </div>
         </section>
 
         <section className="footer-main">
