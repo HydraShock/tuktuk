@@ -201,30 +201,21 @@ function App() {
       <header className={`topbar ${isScrolled ? 'scrolled' : ''}`}>
         <div className="topbar-head">
           <div className="brand">
-            <span className="brand-icon">R</span>
+            <span className="brand-icon">🛺</span>
             <div>
-              <strong>Roma TukTuk</strong>
-              <small>Tours</small>
+              <strong>Tuk Tuk Roma</strong>
             </div>
           </div>
-          <button
-            type="button"
-            className={`menu-toggle ${menuOpen ? 'open' : ''}`}
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-label={menuOpen ? 'Chiudi menu' : 'Apri menu'}
-            aria-expanded={menuOpen}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
         </div>
         <nav className={`top-nav ${menuOpen ? 'open' : ''}`}>
           <a href="#tour" onClick={() => setMenuOpen(false)}>
             Tour
           </a>
-          <a href="#prenota" onClick={() => setMenuOpen(false)}>
-            Prenota
+          <a href="#tour" onClick={() => setMenuOpen(false)}>
+            Esperienze
+          </a>
+          <a href="#galleria" onClick={() => setMenuOpen(false)}>
+            Galleria
           </a>
           <a href="#contatti" onClick={() => setMenuOpen(false)}>
             Contatti
@@ -232,7 +223,21 @@ function App() {
           <a href="#prenota" className="cta-small" onClick={() => setMenuOpen(false)}>
             Prenota Ora
           </a>
+          <button type="button" className="nav-menu-icon" aria-label="Menu rapido">
+            ≡
+          </button>
         </nav>
+        <button
+          type="button"
+          className={`menu-toggle ${menuOpen ? 'open' : ''}`}
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label={menuOpen ? 'Chiudi menu' : 'Apri menu'}
+          aria-expanded={menuOpen}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
       </header>
 
       <section className="hero" id="home">
@@ -240,20 +245,59 @@ function App() {
         <div className="hero-content hero-layout">
           <div className="hero-media-grid" aria-label="Foto di Roma">
             {heroRomeImages.map((image, index) => (
-              <figure key={image} className={`hero-media-card hero-media-card-${index + 1}`}>
+              <figure
+                key={image}
+                className={`hero-media-card hero-media-card-${index + 1}`}
+                onMouseMove={(event) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const x = event.clientX - rect.left;
+                  const y = event.clientY - rect.top;
+                  const rotateY = ((x / rect.width) * 2 - 1) * 8;
+                  const rotateX = -((y / rect.height) * 2 - 1) * 8;
+                  event.currentTarget.style.setProperty('--hero-rx', `${rotateX.toFixed(2)}deg`);
+                  event.currentTarget.style.setProperty('--hero-ry', `${rotateY.toFixed(2)}deg`);
+                }}
+                onMouseLeave={(event) => {
+                  event.currentTarget.style.setProperty('--hero-rx', '0deg');
+                  event.currentTarget.style.setProperty('--hero-ry', '0deg');
+                }}
+              >
                 <img src={image} alt={`Roma scorcio ${index + 1}`} />
               </figure>
             ))}
           </div>
           <div className="hero-copy">
-            <p className="rating">Tour privati nel centro storico</p>
-            <h1>Roma Golf cart \u00E8 il nuovo tour a Roma con golf cart o tuk tuk</h1>
+            <h1>
+              Roma Tuk Tuk
+              <br />
+              <span>Tours</span>
+            </h1>
+            <h2>Vivi Roma in modo unico</h2>
             <p>
-              Scegli il tuo itinerario e vivi la citta in modo comodo, panoramico e senza stress.
+              Scopri la citta in modo comodo, panoramico e senza stress.
             </p>
-            <a href="#prenota" className="hero-cta">
-              Prenota il tuo tour
-            </a>
+            <div className="hero-actions">
+              <a href="#prenota" className="hero-cta">
+                Prenota Ora <span>→</span>
+              </a>
+              <a href="#tour" className="hero-cta hero-cta-alt">
+                ⦿ Scopri i tour
+              </a>
+            </div>
+            <div className="hero-stats">
+              <div>
+                <strong>10K+</strong>
+                <small>Turisti Felici</small>
+              </div>
+              <div>
+                <strong>15+</strong>
+                <small>Tour Disponibili</small>
+              </div>
+              <div>
+                <strong>4.9★</strong>
+                <small>Valutazione Media</small>
+              </div>
+            </div>
           </div>
         </div>
       </section>
