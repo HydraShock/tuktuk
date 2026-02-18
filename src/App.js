@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
+import { BackgroundGradientAnimation } from './ui/background-gradient-animation';
 
 const heroRomeImages = [
   'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=900&q=80',
@@ -50,7 +49,38 @@ const tours = [
   },
 ];
 
-const availableTimes = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
+const availableTimes = [
+  '09:00 - 11:30',
+  '11:45 - 14:20',
+  '15:00 - 17:30',
+];
+const bookingTourOptions = [
+  {
+    id: 'roma-mangia-prega-ama',
+    title: 'Roma tour mangia prega ama',
+    price: 79,
+  },
+  {
+    id: 'when-in-rome',
+    title: 'When in Rome do as the Romans do',
+    price: 79,
+  },
+];
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000/api';
+
+function toDateKey(dateValue) {
+  const year = dateValue.getFullYear();
+  const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+  const day = String(dateValue.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function toMonthKey(dateValue) {
+  const year = dateValue.getFullYear();
+  const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
 const galleryImages = [
   'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1529154036614-a60975f5c760?auto=format&fit=crop&w=1200&q=80',
@@ -114,13 +144,18 @@ function App() {
   const [timeSlot, setTimeSlot] = useState('');
   const [tourId, setTourId] = useState('');
   const [people, setPeople] = useState('2');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [note, setNote] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(date.getFullYear(), date.getMonth(), 1));
+  const [stepMotion, setStepMotion] = useState('idle');
+  const [availabilityByDate, setAvailabilityByDate] = useState({});
+  const [availabilityError, setAvailabilityError] = useState('');
+  const [isPaying, setIsPaying] = useState(false);
+  const transitionTimersRef = useRef([]);
 
-  const selectedTour = useMemo(() => tours.find((tour) => tour.id === tourId), [tourId]);
+  const selectedTour = useMemo(
+    () => bookingTourOptions.find((tour) => tour.id === tourId),
+    [tourId]
+  );
 
   useEffect(() => {
     const handleScroll = () => {
@@ -148,52 +183,245 @@ function App() {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
 
+  const selectedDateKey = useMemo(() => toDateKey(date), [date]);
   const bookingReady = Boolean(date && timeSlot && tourId);
-  const customerReady = Boolean(name.trim() && email.trim() && phone.trim());
+  const guests = Number(people);
+  const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  const selectedDateLabel = useMemo(
+    () =>
+      date.toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }),
+    [date]
+  );
+  const selectedDateLong = useMemo(
+    () =>
+      date.toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }),
+    [date]
+  );
+
+  const monthTitle = useMemo(
+    () => calendarMonth.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }),
+    [calendarMonth]
+  );
+  const monthKey = useMemo(() => toMonthKey(calendarMonth), [calendarMonth]);
+  const selectedDayAvailability = availabilityByDate[selectedDateKey];
+
+  const calendarDays = useMemo(() => {
+    const monthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const nextMonthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+    const daysInMonth = Math.round((nextMonthStart - monthStart) / 86400000);
+    const startOffset = (monthStart.getDay() + 6) % 7;
+    const cells = Array.from({ length: startOffset + daysInMonth }, (_, index) => {
+      if (index < startOffset) {
+        return { key: `empty-${index}`, empty: true };
+      }
+      const dayNumber = index - startOffset + 1;
+      const value = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), dayNumber);
+      const isPast = value < todayStart;
+      const dayKey = toDateKey(value);
+      const dayAvailability = availabilityByDate[dayKey];
+      const isSelected =
+        value.getFullYear() === date.getFullYear() &&
+        value.getMonth() === date.getMonth() &&
+        value.getDate() === date.getDate();
+      const isToday =
+        value.getFullYear() === todayStart.getFullYear() &&
+        value.getMonth() === todayStart.getMonth() &&
+        value.getDate() === todayStart.getDate();
+      const blockedByAvailability = dayAvailability ? dayAvailability.allSlotsFull : false;
+      return {
+        key: value.toISOString(),
+        value,
+        dayKey,
+        dayNumber,
+        isPast,
+        isSelected,
+        isToday,
+        blockedByAvailability,
+      };
+    });
+
+    const missing = (7 - (cells.length % 7)) % 7;
+    return [...cells, ...Array.from({ length: missing }, (_, idx) => ({ key: `tail-${idx}`, empty: true }))];
+  }, [availabilityByDate, calendarMonth, date, todayStart]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAvailability = async () => {
+      try {
+        setAvailabilityError('');
+        const response = await fetch(`${API_BASE_URL}/availability?month=${monthKey}`);
+        if (!response.ok) {
+          throw new Error('Impossibile caricare disponibilita');
+        }
+        const payload = await response.json();
+        if (!cancelled) {
+          setAvailabilityByDate(payload.days || {});
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAvailabilityError(error.message || 'Errore disponibilita');
+          setAvailabilityByDate({});
+        }
+      }
+    };
+
+    loadAvailability();
+    return () => {
+      cancelled = true;
+    };
+  }, [monthKey]);
+
+  useEffect(() => {
+    const selectedSlotStatus = selectedDayAvailability?.slots?.[timeSlot];
+    if (timeSlot && selectedSlotStatus && !selectedSlotStatus.available) {
+      setTimeSlot('');
+    }
+  }, [selectedDayAvailability, timeSlot]);
+
+  useEffect(() => {
+    return () => {
+      transitionTimersRef.current.forEach((id) => window.clearTimeout(id));
+    };
+  }, []);
 
   const bookingPayload = {
     tourId,
     tourName: selectedTour?.title || '',
-    date: date.toISOString().split('T')[0],
+    date: selectedDateKey,
     time: timeSlot,
     people,
-    customer: { name, email, phone, note },
     amount: selectedTour?.price || 0,
     currency: 'EUR',
   };
 
-  const goToDetails = () => {
-    if (!bookingReady) {
-      window.alert('Seleziona data, orario e tour prima di continuare.');
+  const clearStepTimers = () => {
+    transitionTimersRef.current.forEach((id) => window.clearTimeout(id));
+    transitionTimersRef.current = [];
+  };
+
+  const transitionToStep = (nextStep, direction) => {
+    clearStepTimers();
+    setStepMotion(direction === 'forward' ? 'out-left' : 'out-right');
+    const outTimer = window.setTimeout(() => {
+      setCurrentStep(nextStep);
+      setStepMotion(direction === 'forward' ? 'in-left' : 'in-right');
+      const inTimer = window.setTimeout(() => {
+        setStepMotion('idle');
+      }, 280);
+      transitionTimersRef.current.push(inTimer);
+    }, 170);
+    transitionTimersRef.current.push(outTimer);
+  };
+
+  const goToTimeStep = () => {
+    if (!date) {
+      window.alert('Seleziona una data prima di continuare.');
       return;
     }
-    setCurrentStep(2);
+    transitionToStep(2, 'forward');
+  };
+
+  const goToTourStep = () => {
+    const slotAvailability = selectedDayAvailability?.slots?.[timeSlot];
+    if (!timeSlot || (slotAvailability && !slotAvailability.available)) {
+      window.alert('Seleziona un orario disponibile prima di continuare.');
+      return;
+    }
+    transitionToStep(3, 'forward');
+  };
+
+  const goToConfirmStep = () => {
+    if (!tourId) {
+      window.alert('Seleziona un tour prima di continuare.');
+      return;
+    }
+    transitionToStep(4, 'forward');
+  };
+
+  const goToPaymentStep = () => {
+    if (!bookingReady) {
+      window.alert('Completa data, orario e tour prima di andare al pagamento.');
+      return;
+    }
+    transitionToStep(5, 'forward');
   };
 
   const startPaypalCheckout = () => {
     if (!bookingReady) {
-      window.alert('Completa prima i dettagli della prenotazione.');
+      window.alert('Completa prima i dati della prenotazione.');
       return;
     }
 
-    setCurrentStep(3);
-
-    // Placeholder pronto per integrazione PayPal SDK / backend create-order endpoint
-    console.log('PAYPAL_CHECKOUT_PAYLOAD', bookingPayload);
-    window.alert('Placeholder PayPal: collega qui il bottone PayPal e la creazione ordine.');
-  };
-
-  const submitBooking = () => {
-    if (!bookingReady || !customerReady) {
-      window.alert('Completa tutti i campi obbligatori prima dell\'invio.');
+    const selectedSlotStatus = selectedDayAvailability?.slots?.[timeSlot];
+    if (selectedSlotStatus && !selectedSlotStatus.available) {
+      window.alert('Lo slot selezionato non e piu disponibile. Scegline un altro.');
       return;
     }
 
-    setCurrentStep(4);
+    const pay = async () => {
+      try {
+        setIsPaying(true);
 
-    // Placeholder pronto per invio prenotazione a backend (email, CRM o DB)
-    console.log('BOOKING_SUBMIT_PAYLOAD', bookingPayload);
-    window.alert('Prenotazione inviata (demo). Collega qui la tua API di invio.');
+        const intentResponse = await fetch(`${API_BASE_URL}/booking-intents`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: bookingPayload.date,
+            timeSlot: bookingPayload.time,
+            guests: Number(bookingPayload.people),
+            tourId: bookingPayload.tourId || null,
+          }),
+        });
+
+        const intentPayload = await intentResponse.json();
+        if (!intentResponse.ok) {
+          throw new Error(intentPayload.message || 'Impossibile creare la prenotazione.');
+        }
+
+        const paymentReference = `PAYPAL_DEMO_${Date.now()}`;
+        const confirmResponse = await fetch(`${API_BASE_URL}/bookings/confirm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            intentId: intentPayload.intentId,
+            paymentProvider: 'paypal',
+            paymentReference,
+          }),
+        });
+
+        const confirmPayload = await confirmResponse.json();
+        if (!confirmResponse.ok) {
+          throw new Error(confirmPayload.message || 'Pagamento non completato.');
+        }
+
+        window.alert('Pagamento completato e appuntamento inserito nel database.');
+        setCurrentStep(1);
+        setStepMotion('idle');
+        setTimeSlot('');
+
+        const refresh = await fetch(`${API_BASE_URL}/availability?month=${monthKey}`);
+        if (refresh.ok) {
+          const refreshedData = await refresh.json();
+          setAvailabilityByDate(refreshedData.days || {});
+        }
+      } catch (error) {
+        window.alert(error.message || 'Errore durante il pagamento.');
+      } finally {
+        setIsPaying(false);
+      }
+    };
+
+    pay();
   };
 
   return (
@@ -315,8 +543,8 @@ function App() {
             <TourShowcaseCard
               key={tour.id}
               tour={tour}
-              onBook={(id) => {
-                setTourId(id);
+              onBook={() => {
+                setTourId('');
                 setCurrentStep(1);
                 document.getElementById('prenota')?.scrollIntoView({ behavior: 'smooth' });
               }}
@@ -326,141 +554,261 @@ function App() {
       </section>
 
       <section className="booking" id="prenota">
-        <h2>Prenota il tuo tour</h2>
-        <p>Scegli data, orario e tour. Pagamento PayPal pronto da integrare.</p>
-
-        <ol className="steps">
-          <li className={currentStep >= 1 ? 'active' : ''}>Scegli</li>
-          <li className={currentStep >= 2 ? 'active' : ''}>Dati</li>
-          <li className={currentStep >= 3 ? 'active' : ''}>Paga</li>
-          <li className={currentStep >= 4 ? 'active' : ''}>Confermato</li>
-        </ol>
-
-        <div className="booking-panel">
-          <div className="panel-left">
-            <h3>Seleziona una data</h3>
-            <Calendar
-              locale="it-IT"
-              onChange={setDate}
-              value={date}
-              minDate={todayStart}
-              className="custom-calendar"
-              formatShortWeekday={(_, dateValue) =>
-                dateValue.toLocaleDateString('it-IT', { weekday: 'short' }).slice(0, 2)
-              }
-            />
-          </div>
-
-          <div className="panel-right">
-            <h3>Seleziona un orario</h3>
-            <div className="time-grid">
-              {availableTimes.map((time) => (
-                <button
-                  type="button"
-                  key={time}
-                  className={timeSlot === time ? 'slot active' : 'slot'}
-                  onClick={() => setTimeSlot(time)}
-                >
-                  {time}
-                </button>
-              ))}
-            </div>
-
-            <label>
-              Scegli il tour
-              <select value={tourId} onChange={(event) => setTourId(event.target.value)}>
-                <option value="">Seleziona un tour</option>
-                {tours.map((tour) => (
-                  <option key={tour.id} value={tour.id}>
-                    {tour.title} - EUR {tour.price}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Numero di persone
-              <select value={people} onChange={(event) => setPeople(event.target.value)}>
-                <option value="1">1 persona</option>
-                <option value="2">2 persone</option>
-                <option value="3">3 persone</option>
-                <option value="4">4 persone</option>
-              </select>
-            </label>
-
-            <button type="button" className="continue-btn" onClick={goToDetails}>
-              Continua
-            </button>
-          </div>
+        <div className="booking-head-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="3.8" y="5.2" width="16.4" height="14.6" rx="2.5" stroke="currentColor" strokeWidth="2" />
+            <path d="M3.8 9.4H20.2" stroke="currentColor" strokeWidth="2" />
+            <path d="M8 3.1V6.3M16 3.1V6.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M8 12.3H9.9M11.3 12.3H13.2M14.8 12.3H16.7M8 15.6H9.9M11.3 15.6H13.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
         </div>
 
-        <div className="details-grid">
-          <form
-            className="customer-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              submitBooking();
-            }}
-          >
-            <h3>Dati cliente</h3>
-            <label>
-              Nome e cognome
-              <input value={name} onChange={(event) => setName(event.target.value)} required />
-            </label>
-            <label>
-              Email
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </label>
-            <label>
-              Telefono
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} required />
-            </label>
-            <label>
-              Note (opzionale)
-              <textarea value={note} onChange={(event) => setNote(event.target.value)} rows="3" />
-            </label>
+        <h2>
+          Prenota il Tuo <span>Tour</span>
+        </h2>
+        <p>Scegli la data e l'orario perfetto per la tua esperienza indimenticabile a Roma</p>
 
-            <div className="actions">
-              <button type="button" className="paypal-btn" onClick={startPaypalCheckout}>
-                Paga con PayPal (placeholder)
-              </button>
-              <button type="submit" className="send-btn">
-                Invia prenotazione
+        <ol className="booking-steps">
+          {[1, 2, 3, 4, 5].map((step, index) => (
+            <React.Fragment key={step}>
+              {index > 0 ? <li className={`booking-step-line ${currentStep >= step ? 'active' : ''}`} /> : null}
+              <li className={`booking-step-dot ${currentStep >= step ? 'active' : ''}`}>{step}</li>
+            </React.Fragment>
+          ))}
+        </ol>
+
+        <div className={`booking-stage ${stepMotion !== 'idle' ? `booking-stage-${stepMotion}` : ''}`}>
+          {currentStep === 1 ? (
+            <div className="booking-stage-panel">
+              <div className="booking-month-row">
+                <button
+                  type="button"
+                  className="booking-month-arrow"
+                  onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+                >
+                  ‹
+                </button>
+                <h3>{monthTitle}</h3>
+                <button
+                  type="button"
+                  className="booking-month-arrow"
+                  onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+                >
+                  ›
+                </button>
+              </div>
+
+              <div className="booking-calendar-card">
+                <div className="booking-calendar-weekdays">
+                  {weekdays.map((weekday) => (
+                    <span key={weekday}>{weekday}</span>
+                  ))}
+                </div>
+
+                <div className="booking-calendar-grid">
+                  {calendarDays.map((cell) => {
+                    if (cell.empty) {
+                      return <span key={cell.key} className="booking-day-empty" aria-hidden="true" />;
+                    }
+                    return (
+                      <button
+                        type="button"
+                        key={cell.key}
+                        disabled={cell.isPast || cell.blockedByAvailability}
+                        className={`booking-day ${cell.isPast ? 'past' : ''} ${cell.blockedByAvailability ? 'full' : ''} ${cell.isToday ? 'current' : ''} ${cell.isSelected ? 'selected' : ''}`}
+                        onClick={() => {
+                          setDate(cell.value);
+                          setCalendarMonth(new Date(cell.value.getFullYear(), cell.value.getMonth(), 1));
+                        }}
+                      >
+                        {cell.dayNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button type="button" className="booking-primary-cta" onClick={goToTimeStep}>
+                Avanti
               </button>
             </div>
-          </form>
+          ) : null}
 
-          <aside className="summary">
-            <h3>Riepilogo</h3>
-            <p>
-              <strong>Data:</strong>{' '}
-              {date.toLocaleDateString('it-IT', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </p>
-            <p>
-              <strong>Orario:</strong> {timeSlot || '-'}
-            </p>
-            <p>
-              <strong>Tour:</strong> {selectedTour?.title || '-'}
-            </p>
-            <p>
-              <strong>Persone:</strong> {people}
-            </p>
-            <p>
-              <strong>Totale:</strong> EUR {selectedTour ? selectedTour.price * Number(people) : 0}
-            </p>
-            <small>
-              Stato: {bookingReady ? 'configurazione completa' : 'mancano data/orario/tour'}
-            </small>
-          </aside>
+          {currentStep === 2 ? (
+            <div className="booking-stage-panel">
+              <div className="booking-selected-date">
+                <span aria-hidden="true">📅</span>
+                <strong>{selectedDateLabel}</strong>
+              </div>
+
+                <div className="booking-time-card">
+                  <h3>
+                    <span aria-hidden="true">◷</span>
+                    Seleziona la Fascia Oraria
+                  </h3>
+                <div className="booking-time-grid">
+                  {availableTimes.map((time) => {
+                    const slotAvailability = selectedDayAvailability?.slots?.[time];
+                    const slotUnavailable = slotAvailability ? !slotAvailability.available : false;
+                    return (
+                      <button
+                        type="button"
+                        key={time}
+                        disabled={slotUnavailable}
+                        className={`booking-time-slot ${timeSlot === time ? 'selected' : ''} ${slotUnavailable ? 'unavailable' : ''}`}
+                        onClick={() => setTimeSlot(time)}
+                      >
+                        {time}
+                      </button>
+                    );
+                  })}
+                </div>
+                {availabilityError ? <p className="booking-availability-error">{availabilityError}</p> : null}
+              </div>
+
+              <div className="booking-nav-row">
+                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(1, 'backward')}>
+                  Indietro
+                </button>
+                <button type="button" className="booking-primary-cta" onClick={goToTourStep}>
+                  Avanti
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {currentStep === 3 ? (
+            <div className="booking-stage-panel">
+              <div className="booking-tour-card">
+                <h3>
+                  Scegli il <span>Tour</span>
+                </h3>
+                <div className="booking-tour-grid">
+                  {bookingTourOptions.map((tour) => (
+                    <button
+                      type="button"
+                      key={tour.id}
+                      className={`booking-tour-option ${tourId === tour.id ? 'selected' : ''}`}
+                      onClick={() => setTourId(tour.id)}
+                    >
+                      <span className="booking-tour-name">{tour.title}</span>
+                      <strong>EUR {tour.price}</strong>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="booking-nav-row">
+                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(2, 'backward')}>
+                  Indietro
+                </button>
+                <button type="button" className="booking-primary-cta" onClick={goToConfirmStep}>
+                  Avanti
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {currentStep === 4 ? (
+            <div className="booking-stage-panel">
+              <div className="booking-confirm-card">
+                <div className="booking-confirm-icon" aria-hidden="true">
+                  <span className="booking-confirm-icon-core">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M5.5 12.8L10.1 17.2L18.6 7.8" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </div>
+                <h3>Conferma la Tua Prenotazione</h3>
+                <p>Rivedi i dettagli del tuo tour</p>
+
+                <div className="booking-confirm-row">
+                  <div className="icon">📅</div>
+                  <div>
+                    <small>Data</small>
+                    <strong>{selectedDateLong}</strong>
+                  </div>
+                </div>
+
+                <div className="booking-confirm-row">
+                  <div className="icon">◷</div>
+                  <div>
+                    <small>Orario</small>
+                    <strong>{timeSlot || '-'}</strong>
+                  </div>
+                </div>
+
+                <div className="booking-confirm-row">
+                  <div className="icon">👤</div>
+                  <div>
+                    <small>Numero di Ospiti</small>
+                    <div className="booking-guests">
+                      <button type="button" onClick={() => setPeople(String(Math.max(1, guests - 1)))}>
+                        −
+                      </button>
+                      <strong>{people}</strong>
+                      <button type="button" onClick={() => setPeople(String(Math.min(4, guests + 1)))}>
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedTour ? (
+                  <div className="booking-confirm-row">
+                    <div className="icon">🚖</div>
+                    <div>
+                      <small>Tour</small>
+                      <strong>{selectedTour.title}</strong>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="booking-nav-row">
+                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(3, 'backward')}>
+                  Indietro
+                </button>
+                <button type="button" className="booking-primary-cta" onClick={goToPaymentStep}>
+                  Procedi al Pagamento
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {currentStep === 5 ? (
+            <div className="booking-stage-panel">
+              <div className="booking-payment-card">
+                <div className="booking-payment-icon" aria-hidden="true">
+                  <span>P</span>
+                </div>
+                <h3>Pagamento</h3>
+                <p>Seleziona il metodo di pagamento per completare la prenotazione.</p>
+
+                <button type="button" className="booking-paypal-method">
+                  <span className="pp-badge">PayPal</span>
+                  <strong>Paga in sicurezza con PayPal</strong>
+                  <small>
+                    Totale: EUR {selectedTour ? selectedTour.price * Number(people) : 0}
+                  </small>
+                </button>
+              </div>
+
+              <div className="booking-nav-row">
+                <button type="button" className="booking-ghost-btn" onClick={() => transitionToStep(4, 'backward')}>
+                  Indietro
+                </button>
+                <button
+                  type="button"
+                  className="booking-primary-cta booking-paypal-btn"
+                  onClick={startPaypalCheckout}
+                  disabled={isPaying}
+                >
+                  {isPaying ? 'Pagamento in corso...' : 'Paga con PayPal'}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -481,43 +829,72 @@ function App() {
 
       <footer id="contatti" className="footer">
         <section className="footer-cta">
-          <div className="footer-cta-icon" aria-hidden="true">
-            📅
-          </div>
-          <h2>Pronto a Vivere Roma?</h2>
-          <p className="footer-cta-lead">
-            Prenota ora il tuo tour in tuk tuk e scopri la magia della citta eterna in un modo
-            completamente nuovo
-          </p>
+          <BackgroundGradientAnimation className="gradient-demo-bg">
+            <div className="gradient-demo-overlay">
+              <div className="ready-roma-content">
+                <div className="ready-roma-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" role="img">
+                    <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                    <path d="M3.5 9.5H20.5" stroke="currentColor" strokeWidth="2" />
+                    <path d="M8 2.5V6.5M16 2.5V6.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M7.5 13.5H9.5M11 13.5H13M14.5 13.5H16.5M7.5 17H9.5M11 17H13M14.5 17H16.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </div>
 
-          <div className="footer-cta-actions">
-            <a href="#prenota" className="footer-cta-primary">
-              <span className="cta-btn-icon" aria-hidden="true">
-                📅
-              </span>
-              <span>Prenota il Tuo Tour</span>
-              <span className="cta-btn-arrow" aria-hidden="true">
-                →
-              </span>
-            </a>
-            <a href="tel:+390612345678" className="footer-cta-secondary">
-              <span className="cta-btn-icon" aria-hidden="true">
-                📞
-              </span>
-              <span>Chiamaci Ora</span>
-            </a>
-          </div>
+                <h2>Pronto a Vivere Roma?</h2>
+                <p className="ready-roma-lead">
+                  Prenota ora il tuo tour in tuk tuk e scopri la magia della citta eterna
+                </p>
 
-          <div className="footer-cta-contacts">
-            <p className="footer-cta-phone">
-              <span>Telefono</span>
-              <strong>+39 06 1234 5678</strong>
-            </p>
-            <p className="footer-cta-mail">
-              <span>Email</span>
-              <strong>info@tuktukroma.it</strong>
-            </p>
-          </div>
+                <div className="ready-roma-actions">
+                  <a href="#prenota" className="ready-btn ready-btn-primary">
+                    <span className="ready-btn-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M4 8l8-4 8 4-8 4-8-4zM8 10v7l8 4v-7" stroke="currentColor" strokeWidth="2" />
+                        <path d="M4 8v7l4 2" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    </span>
+                    Prenota il Tuo Tour
+                    <span aria-hidden="true">-&gt;</span>
+                  </a>
+                  <a href="tel:+390612345678" className="ready-btn ready-btn-ghost">
+                    <span className="ready-btn-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M6.8 4.5l2.7 3.8c.4.5.3 1.1-.1 1.6l-1.2 1.2a13.1 13.1 0 0 0 4.7 4.7l1.2-1.2c.4-.4 1.1-.5 1.6-.1l3.8 2.7c.6.4.7 1.2.2 1.8l-1.7 1.7c-.5.5-1.2.7-1.9.5-2.7-.7-5.6-2.4-8.2-5s-4.3-5.5-5-8.2c-.2-.7 0-1.4.5-1.9L5 4.3c.6-.5 1.4-.4 1.8.2z" stroke="currentColor" strokeWidth="1.8" />
+                      </svg>
+                    </span>
+                    Chiama Ora
+                  </a>
+                </div>
+
+                <div className="ready-roma-contacts">
+                  <a href="tel:+390612345678" className="ready-contact ready-contact-left">
+                    <span className="ready-contact-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M6.8 4.5l2.7 3.8c.4.5.3 1.1-.1 1.6l-1.2 1.2a13.1 13.1 0 0 0 4.7 4.7l1.2-1.2c.4-.4 1.1-.5 1.6-.1l3.8 2.7c.6.4.7 1.2.2 1.8l-1.7 1.7c-.5.5-1.2.7-1.9.5-2.7-.7-5.6-2.4-8.2-5s-4.3-5.5-5-8.2c-.2-.7 0-1.4.5-1.9L5 4.3c.6-.5 1.4-.4 1.8.2z" stroke="currentColor" strokeWidth="1.8" />
+                      </svg>
+                    </span>
+                    <span>
+                      <span className="ready-contact-label">Telefono</span>
+                      <strong>+39 06 1234 5678</strong>
+                    </span>
+                  </a>
+                  <a href="mailto:info@tuktukroma.it" className="ready-contact ready-contact-right">
+                    <span className="ready-contact-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                        <path d="M4 7l8 6 8-6" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    </span>
+                    <span>
+                      <span className="ready-contact-label">Email</span>
+                      <strong>info@tuktukroma.it</strong>
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </BackgroundGradientAnimation>
         </section>
 
         <section className="footer-main">

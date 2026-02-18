@@ -1,0 +1,390 @@
+.bg-grad-anim {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --pointer-alpha: 0.76;
+  --pointer-size: 300px;
+}
+
+.bg-grad-content {
+  position: relative;
+  z-index: 5;
+  height: 100%;
+}
+
+.bg-grad-layer {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.bg-grad-base {
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 196, 87, 0.3), transparent 36%),
+    radial-gradient(circle at 70% 20%, rgba(255, 145, 64, 0.32), transparent 38%),
+    radial-gradient(circle at 50% 60%, rgba(255, 108, 51, 0.3), transparent 52%),
+    linear-gradient(160deg, #4d0606 0%, #8e1010 54%, #c61f12 100%);
+}
+
+.bg-grad-first {
+  width: 64vmax;
+  height: 64vmax;
+  left: -16vmax;
+  top: -20vmax;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 192, 92, 0.34) 0%, rgba(255, 192, 92, 0) 70%);
+  mix-blend-mode: screen;
+  animation: orbitDriftA 46s linear infinite;
+}
+
+.bg-grad-second {
+  width: 72vmax;
+  height: 72vmax;
+  right: -22vmax;
+  top: -26vmax;
+  border-radius: 999px;
+  transform-origin: 50% 50%;
+  background: radial-gradient(circle, rgba(255, 149, 64, 0.34) 0%, rgba(255, 149, 64, 0) 72%);
+  animation: orbitDriftB 58s linear infinite;
+}
+
+.bg-grad-third {
+  width: 76vmax;
+  height: 76vmax;
+  left: 18%;
+  bottom: -42vmax;
+  border-radius: 999px;
+  transform-origin: center;
+  background: radial-gradient(circle, rgba(255, 210, 92, 0.33) 0%, rgba(255, 210, 92, 0) 72%);
+  animation: orbitDriftC 64s linear infinite;
+}
+
+.bg-grad-fourth {
+  width: 74vmax;
+  height: 64vmax;
+  left: 10%;
+  top: -28vmax;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 124, 60, 0.3) 0%, rgba(255, 124, 60, 0) 72%);
+  animation: orbitDriftD 54s linear infinite;
+}
+
+.bg-grad-fifth {
+  width: 52vmax;
+  height: 52vmax;
+  right: -10vmax;
+  bottom: -14vmax;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 175, 72, 0.32) 0%, rgba(255, 175, 72, 0) 72%);
+  animation: orbitDriftE 50s linear infinite;
+}
+
+.bg-grad-particles {
+  inset: 0;
+  mix-blend-mode: screen;
+  animation: particlesFieldDrift 20s linear infinite;
+}
+
+.bg-grad-particle {
+  position: absolute;
+  top: var(--particle-top);
+  left: var(--particle-left);
+  width: var(--particle-size);
+  height: var(--particle-size);
+  border-radius: 999px;
+  opacity: var(--particle-opacity);
+  filter: blur(7px);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.18) 24%, transparent 58%),
+    radial-gradient(circle at 68% 66%, rgba(255, 189, 76, 0.64) 0%, rgba(255, 189, 76, 0.08) 42%, transparent 72%),
+    radial-gradient(circle, rgba(255, 128, 55, 0.5) 0%, rgba(255, 128, 55, 0.06) 45%, transparent 74%);
+  animation:
+    particleWander var(--particle-duration) ease-in-out infinite,
+    particlePulse calc(var(--particle-duration) * 0.55) ease-in-out infinite;
+  animation-delay: var(--particle-delay);
+  will-change: transform;
+}
+
+.bg-grad-core {
+  inset: 0;
+  background:
+    radial-gradient(340px circle at 50% 52%, rgba(255, 248, 223, 0.34) 0%, rgba(255, 170, 79, 0.2) 36%, transparent 70%),
+    radial-gradient(260px circle at 50% 52%, rgba(255, 212, 96, 0.26) 0%, transparent 72%);
+  mix-blend-mode: screen;
+  filter: blur(8px);
+  animation: coreOrbit 12s ease-in-out infinite;
+}
+
+.bg-grad-pointer {
+  inset: 0;
+  background:
+    radial-gradient(
+      var(--pointer-size) circle at var(--mouse-x) var(--mouse-y),
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 223, 156, 0.45) 20%,
+      rgba(255, 168, 90, 0.28) 40%,
+      rgba(255, 114, 58, 0.12) 62%,
+      transparent 78%
+    );
+  mix-blend-mode: screen;
+  filter: blur(10px);
+  animation: pulsePointer 2.2s ease-in-out infinite;
+  opacity: var(--pointer-alpha);
+  transition: opacity 180ms ease-out;
+}
+
+@keyframes orbitDriftA {
+  0% {
+    transform: translate3d(-8%, -6%, 0) rotate(0deg) scale(1);
+  }
+
+  23% {
+    transform: translate3d(12%, -2%, 0) rotate(90deg) scale(1.07);
+  }
+
+  47% {
+    transform: translate3d(4%, 11%, 0) rotate(180deg) scale(0.97);
+  }
+
+  71% {
+    transform: translate3d(-11%, 6%, 0) rotate(270deg) scale(1.1);
+  }
+
+  100% {
+    transform: translate3d(-8%, -6%, 0) rotate(360deg) scale(1);
+  }
+}
+
+@keyframes orbitDriftB {
+  0% {
+    transform: translate3d(10%, -10%, 0) rotate(0deg) scale(1.04);
+  }
+
+  19% {
+    transform: translate3d(-4%, -14%, 0) rotate(68deg) scale(0.95);
+  }
+
+  44% {
+    transform: translate3d(-13%, 4%, 0) rotate(164deg) scale(1.09);
+  }
+
+  69% {
+    transform: translate3d(8%, 14%, 0) rotate(258deg) scale(0.98);
+  }
+
+  85% {
+    transform: translate3d(15%, 2%, 0) rotate(322deg) scale(1.03);
+  }
+
+  100% {
+    transform: translate3d(10%, -10%, 0) rotate(360deg) scale(1.04);
+  }
+}
+
+@keyframes orbitDriftC {
+  0% {
+    transform: translate3d(-6%, 12%, 0) rotate(0deg) scale(0.96);
+  }
+
+  17% {
+    transform: translate3d(-14%, 3%, 0) rotate(74deg) scale(1.06);
+  }
+
+  39% {
+    transform: translate3d(-1%, -10%, 0) rotate(149deg) scale(0.94);
+  }
+
+  63% {
+    transform: translate3d(13%, -5%, 0) rotate(228deg) scale(1.08);
+  }
+
+  84% {
+    transform: translate3d(5%, 14%, 0) rotate(308deg) scale(0.99);
+  }
+
+  100% {
+    transform: translate3d(-6%, 12%, 0) rotate(360deg) scale(0.96);
+  }
+}
+
+@keyframes orbitDriftD {
+  0% {
+    transform: translate3d(2%, -12%, 0) rotate(0deg) scale(1);
+  }
+
+  21% {
+    transform: translate3d(12%, -3%, 0) rotate(88deg) scale(1.08);
+  }
+
+  49% {
+    transform: translate3d(0%, 10%, 0) rotate(178deg) scale(0.96);
+  }
+
+  73% {
+    transform: translate3d(-14%, 4%, 0) rotate(271deg) scale(1.05);
+  }
+
+  100% {
+    transform: translate3d(2%, -12%, 0) rotate(360deg) scale(1);
+  }
+}
+
+@keyframes orbitDriftE {
+  0% {
+    transform: translate3d(9%, 9%, 0) rotate(0deg) scale(0.97);
+  }
+
+  25% {
+    transform: translate3d(-6%, 13%, 0) rotate(96deg) scale(1.08);
+  }
+
+  52% {
+    transform: translate3d(-11%, -4%, 0) rotate(188deg) scale(0.95);
+  }
+
+  78% {
+    transform: translate3d(7%, -12%, 0) rotate(286deg) scale(1.06);
+  }
+
+  100% {
+    transform: translate3d(9%, 9%, 0) rotate(360deg) scale(0.97);
+  }
+}
+
+@keyframes particleWander {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.94);
+  }
+
+  25% {
+    transform: translate3d(var(--particle-drift-x), calc(var(--particle-drift-y) * -1), 0) scale(1.05);
+  }
+
+  50% {
+    transform: translate3d(calc(var(--particle-drift-x) * 0.28), calc(var(--particle-drift-y) * 0.25), 0) scale(0.97);
+  }
+
+  75% {
+    transform: translate3d(var(--particle-drift-x-2), var(--particle-drift-y-2), 0) scale(1.03);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.94);
+  }
+}
+
+@keyframes particlesFieldDrift {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(4deg) scale(1.025);
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes particlePulse {
+  0% {
+    opacity: calc(var(--particle-opacity) * 0.78);
+  }
+
+  50% {
+    opacity: var(--particle-opacity);
+  }
+
+  100% {
+    opacity: calc(var(--particle-opacity) * 0.78);
+  }
+}
+
+@keyframes coreOrbit {
+  0% {
+    transform: translate3d(-5%, -3%, 0) scale(0.92);
+    opacity: 0.56;
+  }
+
+  28% {
+    transform: translate3d(6%, -5%, 0) scale(1.1);
+    opacity: 0.8;
+  }
+
+  57% {
+    transform: translate3d(8%, 6%, 0) scale(0.96);
+    opacity: 0.62;
+  }
+
+  100% {
+    transform: translate3d(-5%, -3%, 0) scale(1.04);
+    opacity: 0.72;
+  }
+}
+
+@keyframes pulsePointer {
+  0% {
+    opacity: calc(var(--pointer-alpha) * 0.86);
+  }
+
+  50% {
+    opacity: var(--pointer-alpha);
+  }
+
+  100% {
+    opacity: calc(var(--pointer-alpha) * 0.86);
+  }
+}
+
+@media (max-width: 1024px) {
+  .bg-grad-anim {
+    --pointer-size: 250px;
+  }
+
+  .bg-grad-particle {
+    filter: blur(7px);
+  }
+}
+
+@media (max-width: 720px) {
+  .bg-grad-anim {
+    --pointer-size: 210px;
+  }
+
+  .bg-grad-first,
+  .bg-grad-second,
+  .bg-grad-third,
+  .bg-grad-fourth,
+  .bg-grad-fifth {
+    filter: blur(3px);
+  }
+
+  .bg-grad-core {
+    filter: blur(7px);
+  }
+
+  .bg-grad-particle {
+    filter: blur(8px);
+  }
+}
+
+@media (max-width: 480px) {
+  .bg-grad-anim {
+    --pointer-size: 170px;
+  }
+
+  .bg-grad-core {
+    filter: blur(6px);
+  }
+
+  .bg-grad-particle {
+    filter: blur(7px);
+    opacity: calc(var(--particle-opacity) * 0.86);
+  }
+}
+
