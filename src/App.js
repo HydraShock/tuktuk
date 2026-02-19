@@ -13,7 +13,7 @@ const heroRomeImages = [
 const tours = [
   {
     id: 'classico',
-    title: 'Tour Classico',
+    title: 'Roma \n Da Romano',
     price: 89,
     duration: '3 ore',
     capacity: '1-4 persone',
@@ -24,20 +24,8 @@ const tours = [
       'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80',
   },
   {
-    id: 'panoramico',
-    title: 'Tour Panoramico',
-    price: 79,
-    duration: '2.5 ore',
-    capacity: '1-4 persone',
-    rating: 4.8,
-    description: 'Vista mozzafiato dei luoghi piu belli',
-    stops: ['Fontana di Trevi', 'Piazza di Spagna', 'Pantheon'],
-    image:
-      'https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
     id: 'completo',
-    title: 'Tour Completo',
+    title: 'Roma Mangia Prega Ama',
     price: 149,
     duration: '5 ore',
     capacity: '1-4 persone',
@@ -564,7 +552,7 @@ function App() {
           <div className="brand">
             <span className="brand-icon">{"\u{1F6FA}"}</span>
             <div>
-              <strong>Tuk Tuk Roma</strong>
+              <strong>RomeInOut</strong>
             </div>
           </div>
         </div>
@@ -1096,8 +1084,7 @@ function App() {
         </div>
       </section>
 
-      <footer id="contatti" className="footer">
-        <section className="footer-cta">
+      <section className="footer-cta">
           <BackgroundGradientAnimation className="gradient-demo-bg">
             <div className="gradient-demo-overlay">
               <div className="ready-roma-content">
@@ -1135,7 +1122,7 @@ function App() {
                 </div>
 
                 <div className="ready-roma-contacts">
-                  <a href="tel:+390612345678" className="ready-contact ready-contact-left">
+                  <a href="tel:+39 375 605 1114" className="ready-contact ready-contact-left">
                     <span className="ready-contact-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none">
                         <path d="M6.8 4.5l2.7 3.8c.4.5.3 1.1-.1 1.6l-1.2 1.2a13.1 13.1 0 0 0 4.7 4.7l1.2-1.2c.4-.4 1.1-.5 1.6-.1l3.8 2.7c.6.4.7 1.2.2 1.8l-1.7 1.7c-.5.5-1.2.7-1.9.5-2.7-.7-5.6-2.4-8.2-5s-4.3-5.5-5-8.2c-.2-.7 0-1.4.5-1.9L5 4.3c.6-.5 1.4-.4 1.8.2z" stroke="currentColor" strokeWidth="1.8" />
@@ -1143,7 +1130,7 @@ function App() {
                     </span>
                     <span>
                       <span className="ready-contact-label">Telefono</span>
-                      <strong>+39 06 1234 5678</strong>
+                      <strong>+39 375 605 1114</strong>
                     </span>
                   </a>
                   <a href="mailto:info@tuktukroma.it" className="ready-contact ready-contact-right">
@@ -1162,7 +1149,7 @@ function App() {
               </div>
             </div>
           </BackgroundGradientAnimation>
-        </section>
+      </section>
 
         <section className="footer-map-section" aria-labelledby="footer-map-title">
           <aside className="footer-map-float footer-map-float-rating" aria-label="Tour rating">
@@ -1261,12 +1248,15 @@ function App() {
           </div>
         </section>
 
+
+
+      <footer id="contatti" className="footer">
         <section className="footer-main">
           <div className="footer-grid">
             <div className="footer-col">
               <div className="footer-brand">
                 <span className="footer-brand-icon">TT</span>
-                <strong>Tuk Tuk Roma</strong>
+                <strong>RomeInOut</strong>
               </div>
               <p>
                 Scopri Roma in modo unico e indimenticabile con i nostri tour in tuk tuk. Esperienza,
@@ -1302,9 +1292,9 @@ function App() {
             <div className="footer-col">
               <h4>Contatti</h4>
               <ul>
-                <li>Via del Colosseo, 1</li>
+                <li>Via Cavour 134</li>
                 <li>00184 Roma, Italia</li>
-                <li>+39 06 1234 5678</li>
+                <li>+39 375 605 1114</li>
                 <li>info@tuktukroma.it</li>
               </ul>
             </div>
@@ -1314,18 +1304,18 @@ function App() {
               <ul className="hours">
                 <li>
                   <span>Lun - Ven</span>
-                  <strong>09:00 - 20:00</strong>
+                  <strong>07:00 - 23:00</strong>
                 </li>
                 <li>
                   <span>Sabato</span>
-                  <strong>09:00 - 22:00</strong>
+                  <strong>07:00 - 23:00</strong>
                 </li>
                 <li>
                   <span>Domenica</span>
-                  <strong>10:00 - 20:00</strong>
+                  <strong>07:00 - 23:00</strong>
                 </li>
               </ul>
-              <p className="footer-offer">Offerta Speciale: Prenota oggi e ricevi il 15% di sconto!</p>
+             
             </div>
           </div>
 
@@ -1344,3 +1334,6 @@ function App() {
 }
 
 export default App;
+
+
+  

@@ -447,7 +447,8 @@ body {
 
 .tour-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(300px, 520px));
+  justify-content: center;
   gap: 26px;
 }
 
@@ -535,6 +536,7 @@ body {
 
 .tour-body h3 {
   margin: 0;
+  text-align: center;
   color: #1f232b;
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
@@ -869,7 +871,7 @@ body {
 }
 
 .footer {
-  margin-top: 52px;
+  margin-top: 0;
   color: #f7f6ff;
 }
 
@@ -881,10 +883,11 @@ body {
 .footer-map-section {
   position: relative;
   isolation: isolate;
-  width: min(1280px, 96%);
-  margin: 30px auto 0;
-  padding: 34px 18px 24px;
-  border-radius: 40px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(20px, 2.2vw, 34px) clamp(10px, 2vw, 18px) clamp(14px, 2vw, 24px);
+  border-radius: 0;
   overflow: visible;
 }
 
@@ -905,13 +908,14 @@ body {
 .footer-map-section::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -1px 0;
   z-index: -1;
-  border-radius: 40px;
+  border-radius: 0;
   background:
-    linear-gradient(180deg, rgba(248, 243, 236, 0.94) 0%, rgba(248, 243, 236, 0.96) 36%, rgba(255, 255, 255, 0.98) 100%),
-    radial-gradient(circle at 18% 12%, rgba(255, 203, 136, 0.28), rgba(255, 203, 136, 0) 48%);
-  border: 1px solid rgba(237, 226, 209, 0.92);
+    linear-gradient(180deg, rgba(248, 243, 236, 0.74) 0%, rgba(248, 243, 236, 0.82) 36%, rgba(248, 243, 236, 0.86) 100%),
+    radial-gradient(circle at 50% -6%, rgba(0, 0, 0, 0.24), rgba(0, 0, 0, 0) 52%),
+    url('https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&w=2200&q=80') center / cover no-repeat;
+  border: 0;
   box-shadow:
     0 28px 44px rgba(31, 27, 37, 0.14),
     0 10px 24px rgba(255, 123, 0, 0.1);
@@ -975,13 +979,13 @@ body {
 }
 
 .footer-map-float-rating {
-  top: 62px;
-  right: 58px;
+  top: clamp(34px, 4vw, 62px);
+  right: clamp(16px, 3.2vw, 58px);
 }
 
 .footer-map-float-tourists {
-  left: 22px;
-  top: 360px;
+  left: clamp(12px, 2vw, 22px);
+  top: clamp(260px, 24vw, 360px);
 }
 
 .footer-map-float-satisfaction {
@@ -991,9 +995,9 @@ body {
 
 .footer-map-head {
   position: relative;
-  margin: 0 auto 22px;
-  width: min(980px, 94%);
-  padding: 10px 20px 14px;
+  margin: 0 auto clamp(12px, 1.8vw, 22px);
+  width: min(980px, 95%);
+  padding: clamp(8px, 1vw, 10px) clamp(14px, 2vw, 20px) clamp(10px, 1.6vw, 14px);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.26);
   border: 1px solid rgba(255, 255, 255, 0.44);
@@ -1021,14 +1025,17 @@ body {
   margin: 10px 0 0;
   font-family: 'Poppins', sans-serif;
   color: #4f5f77;
-  font-size: clamp(1.05rem, 1.3vw, 1.6rem);
+  font-size: clamp(0.95rem, 1.3vw, 1.6rem);
 }
 
 .footer-map-shell {
   position: relative;
-  border-radius: 40px;
+  width: min(1240px, 76vw);
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: clamp(20px, 2.4vw, 40px);
   overflow: hidden;
-  border: 12px solid rgba(255, 255, 255, 0.95);
+  border: clamp(6px, 0.8vw, 12px) solid rgba(255, 255, 255, 0.95);
   background: #fff;
   box-shadow:
     0 44px 86px rgba(255, 126, 20, 0.38),
@@ -1041,7 +1048,7 @@ body {
 
 .footer-map-shell iframe {
   width: 100%;
-  height: 608px;
+  height: clamp(340px, 42vw, 608px);
   border: 0;
   display: block;
   filter: saturate(0.9) contrast(0.94);
@@ -1049,10 +1056,10 @@ body {
 
 .footer-map-tour-card {
   position: absolute;
-  top: 26px;
-  left: 26px;
-  width: 222px;
-  border-radius: 18px;
+  top: clamp(10px, 1.8vw, 26px);
+  left: clamp(10px, 1.8vw, 26px);
+  width: clamp(172px, 19vw, 222px);
+  border-radius: clamp(14px, 1.1vw, 18px);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(238, 227, 210, 0.94);
@@ -1062,19 +1069,19 @@ body {
 }
 
 .footer-map-tour-card-head {
-  min-height: 72px;
-  padding: 10px 14px;
+  min-height: clamp(52px, 5.6vw, 72px);
+  padding: clamp(8px, 0.9vw, 10px) clamp(10px, 1.2vw, 14px);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: clamp(7px, 0.8vw, 10px);
   background: linear-gradient(90deg, #ff9c00 0%, #ff6200 70%, #ef4200 100%);
   color: #fff;
 }
 
 .footer-map-tour-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: clamp(28px, 3vw, 40px);
+  height: clamp(28px, 3vw, 40px);
+  border-radius: clamp(8px, 1vw, 12px);
   display: grid;
   place-items: center;
   color: #ff7f00;
@@ -1082,14 +1089,14 @@ body {
 }
 
 .footer-map-tour-icon svg {
-  width: 20px;
-  height: 20px;
+  width: clamp(14px, 1.6vw, 20px);
+  height: clamp(14px, 1.6vw, 20px);
 }
 
 .footer-map-tour-card-head strong {
   display: block;
   font-family: 'Poppins', sans-serif;
-  font-size: 1.45rem;
+  font-size: clamp(0.96rem, 1.24vw, 1.45rem);
   line-height: 1.06;
 }
 
@@ -1097,14 +1104,14 @@ body {
   display: block;
   margin-top: 4px;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
+  font-size: clamp(0.72rem, 0.85vw, 0.9rem);
   color: rgba(255, 255, 255, 0.86);
 }
 
 .footer-map-tour-list {
-  padding: 10px 14px 12px;
+  padding: clamp(8px, 0.9vw, 10px) clamp(10px, 1.2vw, 14px) clamp(9px, 1vw, 12px);
   display: grid;
-  gap: 8px;
+  gap: clamp(5px, 0.8vw, 8px);
 }
 
 .footer-map-tour-list p {
@@ -1115,19 +1122,19 @@ body {
 
 .footer-map-tour-list span {
   font-family: 'Poppins', sans-serif;
-  font-size: 0.95rem;
+  font-size: clamp(0.72rem, 0.84vw, 0.95rem);
   color: #697791;
 }
 
 .footer-map-tour-list strong {
   font-family: 'Poppins', sans-serif;
-  font-size: 1.52rem;
+  font-size: clamp(0.94rem, 1.35vw, 1.52rem);
   color: #172237;
   line-height: 1.08;
 }
 
 .footer-map-tour-list em {
-  font-size: 1.1rem;
+  font-size: clamp(0.76rem, 0.96vw, 1.1rem);
   font-style: normal;
   font-weight: 500;
   color: #6c7a93;
@@ -1210,18 +1217,19 @@ body {
 
 .footer-map-cta {
   position: absolute;
-  right: 24px;
-  bottom: 20px;
-  min-width: 254px;
-  min-height: 62px;
-  border-radius: 20px;
+  right: clamp(10px, 1.8vw, 24px);
+  bottom: clamp(10px, 1.4vw, 20px);
+  min-width: clamp(190px, 24vw, 254px);
+  min-height: clamp(48px, 5vw, 62px);
+  border-radius: clamp(14px, 1.4vw, 20px);
+  padding: 0 clamp(10px, 1.1vw, 16px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: clamp(8px, 1vw, 12px);
   text-decoration: none;
   font-family: 'Poppins', sans-serif;
-  font-size: 1.9rem;
+  font-size: clamp(1.08rem, 1.95vw, 1.9rem);
   font-weight: 700;
   color: #fff;
   background: linear-gradient(90deg, #ff9200 0%, #ff6600 62%, #e64300 100%);
@@ -1233,17 +1241,17 @@ body {
 }
 
 .footer-map-cta-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: clamp(26px, 3vw, 38px);
+  height: clamp(26px, 3vw, 38px);
+  border-radius: clamp(8px, 1vw, 12px);
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.15);
 }
 
 .footer-map-cta-icon svg {
-  width: 20px;
-  height: 20px;
+  width: clamp(14px, 1.55vw, 20px);
+  height: clamp(14px, 1.55vw, 20px);
 }
 
 .footer-map-cta:hover {
@@ -1257,16 +1265,16 @@ body {
 .footer-map-dots {
   position: absolute;
   left: 50%;
-  bottom: 20px;
+  bottom: clamp(12px, 1.4vw, 20px);
   transform: translateX(-50%);
   display: inline-flex;
-  gap: 7px;
+  gap: clamp(5px, 0.5vw, 7px);
   z-index: 3;
 }
 
 .footer-map-dots span {
-  width: 8px;
-  height: 8px;
+  width: clamp(6px, 0.55vw, 8px);
+  height: clamp(6px, 0.55vw, 8px);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.7);
 }
@@ -1276,27 +1284,27 @@ body {
 }
 
 .footer-map-benefits {
-  margin: 16px auto 0;
-  width: min(920px, 96%);
+  margin: clamp(10px, 1.4vw, 16px) auto 0;
+  width: min(920px, 98%);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 14px 20px;
+  gap: clamp(8px, 1vw, 14px) clamp(10px, 1.8vw, 20px);
 }
 
 .footer-map-benefits span {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(6px, 0.8vw, 8px);
   font-family: 'Poppins', sans-serif;
-  font-size: 1.3rem;
+  font-size: clamp(0.94rem, 1.08vw, 1.3rem);
   color: #4d5e76;
 }
 
 .footer-map-benefits i {
-  width: 20px;
-  height: 20px;
+  width: clamp(16px, 1.35vw, 20px);
+  height: clamp(16px, 1.35vw, 20px);
   border-radius: 999px;
   display: inline-grid;
   place-items: center;
@@ -1745,7 +1753,8 @@ body {
   }
 
   .tour-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(260px, 430px));
+    justify-content: center;
     gap: 20px;
   }
 
@@ -1767,9 +1776,9 @@ body {
   }
 
   .footer-map-section {
-    margin-top: 20px;
-    padding: 24px 12px 20px;
-    border-radius: 32px;
+    margin-top: 0;
+    padding: clamp(18px, 2vw, 24px) 12px clamp(14px, 1.8vw, 20px);
+    border-radius: 0;
   }
 
   .footer-map-section::before {
@@ -1779,12 +1788,12 @@ body {
   }
 
   .footer-map-section::after {
-    border-radius: 32px;
+    border-radius: 0;
   }
 
   .footer-map-float-rating {
-    top: 48px;
-    right: 30px;
+    top: clamp(24px, 5vw, 48px);
+    right: clamp(12px, 2.8vw, 30px);
   }
 
   .footer-map-float-tourists,
@@ -1797,26 +1806,28 @@ body {
   }
 
   .footer-map-shell {
+    width: min(980px, 94%);
+    margin: 0 auto;
     border-radius: 30px;
     border-width: 8px;
   }
 
   .footer-map-shell iframe {
-    height: 490px;
+    height: clamp(340px, 50vw, 490px);
   }
 
   .footer-map-tour-card {
-    top: 16px;
-    left: 16px;
-    width: 206px;
+    top: 12px;
+    left: 12px;
+    width: clamp(168px, 26vw, 206px);
   }
 
   .footer-map-tour-card-head {
-    min-height: 64px;
+    min-height: clamp(52px, 6vw, 64px);
   }
 
   .footer-map-tour-card-head strong {
-    font-size: 1.3rem;
+    font-size: clamp(1rem, 1.9vw, 1.3rem);
   }
 
   .footer-map-place-card {
@@ -1835,10 +1846,10 @@ body {
   .footer-map-cta {
     right: 16px;
     bottom: 14px;
-    min-width: 220px;
-    min-height: 52px;
-    font-size: 1.55rem;
-    border-radius: 16px;
+    min-width: clamp(180px, 34vw, 220px);
+    min-height: clamp(46px, 6vw, 52px);
+    font-size: clamp(1.08rem, 2.5vw, 1.55rem);
+    border-radius: clamp(13px, 2vw, 16px);
   }
 
   .footer-map-benefits {
@@ -1847,7 +1858,7 @@ body {
   }
 
   .footer-map-benefits span {
-    font-size: 1.18rem;
+    font-size: clamp(0.98rem, 1.9vw, 1.18rem);
   }
 
   .ready-roma-bg,
@@ -2008,7 +2019,8 @@ body {
   }
 
   .tour-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 520px);
+    justify-content: center;
   }
 
   .tours {
@@ -2091,10 +2103,10 @@ body {
   }
 
   .footer-map-section {
-    width: calc(100% - 14px);
-    margin-top: 14px;
-    padding: 20px 8px 14px;
-    border-radius: 22px;
+    width: 100%;
+    margin-top: 0;
+    padding: 18px 8px 12px;
+    border-radius: 0;
   }
 
   .footer-map-section::before {
@@ -2104,7 +2116,7 @@ body {
   }
 
   .footer-map-section::after {
-    border-radius: 22px;
+    border-radius: 0;
   }
 
   .footer-map-float {
@@ -2112,33 +2124,36 @@ body {
   }
 
   .footer-map-head {
+    width: min(640px, 96%);
     margin-bottom: 12px;
     text-align: center;
   }
 
   .footer-map-head h3 {
-    font-size: 1.8rem;
+    font-size: clamp(1.5rem, 7.4vw, 1.8rem);
     line-height: 1.12;
   }
 
   .footer-map-head p {
     margin-top: 8px;
-    font-size: 0.98rem;
+    font-size: clamp(0.86rem, 3.4vw, 0.98rem);
   }
 
   .footer-map-shell {
-    border-radius: 20px;
-    border-width: 6px;
+    width: 100%;
+    margin: 0 auto;
+    border-radius: clamp(14px, 3vw, 20px);
+    border-width: clamp(4px, 1.2vw, 6px);
   }
 
   .footer-map-shell iframe {
-    height: 360px;
+    height: clamp(260px, 78vw, 360px);
   }
 
   .footer-map-tour-card {
-    top: 10px;
-    left: 10px;
-    width: 184px;
+    top: 8px;
+    left: 8px;
+    width: clamp(146px, 52vw, 184px);
     border-radius: 14px;
   }
 
@@ -2154,11 +2169,11 @@ body {
   }
 
   .footer-map-tour-card-head strong {
-    font-size: 1.05rem;
+    font-size: clamp(0.92rem, 3.2vw, 1.05rem);
   }
 
   .footer-map-tour-card-head small {
-    font-size: 0.76rem;
+    font-size: clamp(0.64rem, 2.3vw, 0.76rem);
     margin-top: 2px;
   }
 
@@ -2168,15 +2183,15 @@ body {
   }
 
   .footer-map-tour-list span {
-    font-size: 0.78rem;
+    font-size: clamp(0.68rem, 2.4vw, 0.78rem);
   }
 
   .footer-map-tour-list strong {
-    font-size: 1.03rem;
+    font-size: clamp(0.88rem, 3.2vw, 1.03rem);
   }
 
   .footer-map-tour-list em {
-    font-size: 0.8rem;
+    font-size: clamp(0.7rem, 2.4vw, 0.8rem);
   }
 
   .footer-map-place-card {
@@ -2202,10 +2217,12 @@ body {
     bottom: 10px;
     transform: translateX(-50%);
     min-width: calc(100% - 20px);
-    min-height: 48px;
+    max-width: calc(100% - 20px);
+    min-height: clamp(42px, 12vw, 48px);
     border-radius: 14px;
-    font-size: 1.22rem;
-    gap: 8px;
+    font-size: clamp(0.95rem, 4.6vw, 1.22rem);
+    gap: clamp(6px, 2vw, 8px);
+    padding: 0 10px;
   }
 
   .footer-map-cta:hover {
@@ -2213,13 +2230,13 @@ body {
   }
 
   .footer-map-cta-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
+    width: clamp(24px, 6vw, 30px);
+    height: clamp(24px, 6vw, 30px);
+    border-radius: clamp(7px, 1.8vw, 9px);
   }
 
   .footer-map-dots {
-    bottom: 68px;
+    bottom: clamp(56px, 14vw, 68px);
   }
 
   .footer-map-benefits {
@@ -2228,7 +2245,7 @@ body {
   }
 
   .footer-map-benefits span {
-    font-size: 1.02rem;
+    font-size: clamp(0.9rem, 3.6vw, 1.02rem);
     gap: 6px;
   }
 
@@ -3585,6 +3602,77 @@ body {
 }
 
 @media (max-width: 560px) {
+  .footer-map-section {
+    padding: 16px 6px 12px;
+  }
+
+  .footer-map-section::before {
+    inset: 74px 6px -8px;
+    filter: blur(14px);
+  }
+
+  .footer-map-shell {
+    border-width: 5px;
+    border-radius: 16px;
+  }
+
+  .footer-map-shell iframe {
+    height: clamp(230px, 84vw, 320px);
+  }
+
+  .footer-map-tour-card {
+    width: clamp(132px, 56vw, 170px);
+  }
+
+  .footer-map-tour-card-head strong {
+    font-size: clamp(0.82rem, 3.1vw, 0.96rem);
+  }
+
+  .footer-map-tour-card-head small {
+    font-size: clamp(0.62rem, 2.2vw, 0.7rem);
+  }
+
+  .footer-map-tour-list {
+    gap: 4px;
+  }
+
+  .footer-map-tour-list span {
+    font-size: clamp(0.64rem, 2.4vw, 0.72rem);
+  }
+
+  .footer-map-tour-list strong {
+    font-size: clamp(0.82rem, 3vw, 0.94rem);
+  }
+
+  .footer-map-tour-list em {
+    font-size: clamp(0.66rem, 2.2vw, 0.74rem);
+  }
+
+  .footer-map-cta {
+    min-height: 42px;
+    border-radius: 12px;
+    font-size: clamp(0.88rem, 4.2vw, 1.04rem);
+  }
+
+  .footer-map-cta-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+  }
+
+  .footer-map-cta-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .footer-map-dots {
+    bottom: 54px;
+  }
+
+  .footer-map-benefits span {
+    font-size: clamp(0.84rem, 3.4vw, 0.92rem);
+  }
+
   .booking-head-icon {
     width: 46px;
     height: 46px;
@@ -3734,6 +3822,68 @@ body {
 }
 
 @media (max-width: 420px) {
+  .footer-map-section {
+    padding: 14px 4px 10px;
+  }
+
+  .footer-map-shell iframe {
+    height: clamp(216px, 88vw, 280px);
+  }
+
+  .footer-map-tour-card {
+    top: 7px;
+    left: 7px;
+    width: clamp(122px, 60vw, 148px);
+  }
+
+  .footer-map-tour-card-head {
+    min-height: 40px;
+    padding: 6px 7px;
+    gap: 6px;
+  }
+
+  .footer-map-tour-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+  }
+
+  .footer-map-tour-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .footer-map-tour-list {
+    padding: 6px 7px 7px;
+  }
+
+  .footer-map-cta {
+    min-width: calc(100% - 14px);
+    max-width: calc(100% - 14px);
+    bottom: 8px;
+    font-size: clamp(0.82rem, 4.4vw, 0.98rem);
+  }
+
+  .footer-map-cta-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .footer-map-dots {
+    display: none;
+  }
+
+  .footer-map-benefits {
+    margin-top: 8px;
+    gap: 6px 8px;
+  }
+
+  .footer-map-benefits i {
+    width: 16px;
+    height: 16px;
+    font-size: 0.74rem;
+  }
+
   .booking {
     width: calc(100% - 12px);
     margin: 30px auto 44px;
